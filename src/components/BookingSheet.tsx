@@ -16,6 +16,7 @@ import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { useToast } from "@/hooks/use-toast";
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 interface BookingSheetProps {
   object: BookableObject | null;
@@ -31,6 +32,7 @@ const statusVariant: Record<BookableObject['status'], 'default' | 'destructive' 
 
 const BookingSheet: FC<BookingSheetProps> = ({ object, isOpen, onOpenChange }) => {
   const { toast } = useToast();
+  const router = useRouter();
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   
   if (!object) return null;
@@ -38,9 +40,10 @@ const BookingSheet: FC<BookingSheetProps> = ({ object, isOpen, onOpenChange }) =
   const handleBooking = () => {
     onOpenChange(false);
     toast({
-        title: "Booking Confirmed!",
-        description: `${object.name} has been booked for ${date?.toLocaleDateString()}. Payment details would be handled next.`,
+        title: "Proceeding to Payment",
+        description: `Booking ${object.name} for ${date?.toLocaleDateString()}.`,
     });
+    router.push('/payment');
   }
 
   return (

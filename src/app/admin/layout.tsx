@@ -57,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/admin/bookings'} disabled>
+                <SidebarMenuButton asChild isActive={pathname === '/admin/bookings'}>
                   <Link href="/admin/bookings">
                     <Users />
                     Bookings

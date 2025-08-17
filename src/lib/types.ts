@@ -18,3 +18,12 @@ export type Location = {
   floorPlanUrl: string;
   objects: BookableObject[];
 };
+
+export type Booking = {
+    id: string;
+    objectName: string;
+    locationName: string;
+    customerName: string;
+    bookingDate: string;
+    status: 'Confirmed' | 'Cancelled';
+}

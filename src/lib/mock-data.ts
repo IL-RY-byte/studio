@@ -1,4 +1,4 @@
-import type { Location } from './types';
+import type { Location, Booking } from './types';
 
 export const restaurantLocation: Location = {
   id: 'restaurant-1',
@@ -167,3 +167,38 @@ export const coworkingLocation: Location = {
     },
   ],
 };
+
+export const mockBookings: Booking[] = [
+    {
+        id: 'booking-1',
+        objectName: 'Table 5 (Large)',
+        locationName: 'The Gourmet Place',
+        customerName: 'John Doe',
+        bookingDate: new Date().toLocaleDateString(),
+        status: 'Confirmed'
+    },
+    {
+        id: 'booking-2',
+        objectName: 'Sunbed A1',
+        locationName: 'Sunset Beach Club',
+        customerName: 'Jane Smith',
+        bookingDate: new Date(new Date().setDate(new Date().getDate() + 2)).toLocaleDateString(),
+        status: 'Confirmed'
+    },
+    {
+        id: 'booking-3',
+        objectName: 'Meeting Room "Apollo"',
+        locationName: 'Productivity Hub',
+        customerName: 'Acme Inc.',
+        bookingDate: new Date().toLocaleDateString(),
+        status: 'Confirmed'
+    },
+    {
+        id: 'booking-4',
+        objectName: 'Table 1',
+        locationName: 'The Gourmet Place',
+        customerName: 'Peter Jones',
+        bookingDate: new Date(new Date().setDate(new Date().getDate() - 5)).toLocaleDateString(),
+        status: 'Cancelled'
+    },
+];

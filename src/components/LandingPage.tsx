@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Star, Shuffle, Smartphone } from 'lucide-react';
+import { ArrowRight, Star, Shuffle, Smartphone, BotMessageSquare } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LandingPage() {
@@ -35,14 +35,9 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <Image
-                src="https://placehold.co/600x400.png"
-                width="600"
-                height="400"
-                alt="Hero"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last"
-                data-ai-hint="interactive map business"
-              />
+               <div className="mx-auto flex items-center justify-center lg:order-last">
+                <BotMessageSquare className="w-48 h-48 sm:w-64 sm:h-64 lg:w-96 lg:h-96 text-primary/10" strokeWidth={1}/>
+               </div>
             </div>
           </div>
         </section>

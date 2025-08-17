@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,15 +27,28 @@ export default function LoginPage() {
     const router = useRouter();
     const { toast } = useToast();
 
-    React.useEffect(() => {
-        if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-                'callback': (response: any) => {
-                    // reCAPTCHA solved, allow signInWithPhoneNumber.
-                }
-            });
+    const setupRecaptcha = () => {
+        if (typeof window !== 'undefined') {
+            if (window.recaptchaVerifier) {
+                // Clears the existing verifier if it's there.
+                // This is to prevent errors on re-render.
+                window.recaptchaVerifier.clear();
+            }
+            try {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'invisible',
+                    'callback': (response: any) => {
+                        // reCAPTCHA solved, allow signInWithPhoneNumber.
+                    }
+                });
+            } catch (error) {
+                console.error("RecaptchaVerifier initialization error:", error);
+            }
         }
+    };
+
+    useEffect(() => {
+        setupRecaptcha();
     }, []);
 
 
@@ -44,18 +57,26 @@ export default function LoginPage() {
         setIsLoading(true);
         try {
             const formattedPhoneNumber = `+${phoneNumber.replace(/\D/g, '')}`;
-            if(!window.recaptchaVerifier) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Recaptcha not initialized' });
-                setIsLoading(false);
-                return
+            
+            // Ensure verifier is still valid
+            if (!window.recaptchaVerifier) {
+                setupRecaptcha(); // Try to set it up again
             }
-            const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, window.recaptchaVerifier);
+
+            const verifier = window.recaptchaVerifier;
+            if(!verifier) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Recaptcha not initialized. Please refresh.' });
+                setIsLoading(false);
+                return;
+            }
+
+            const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, verifier);
             window.confirmationResult = confirmationResult;
             setOtpSent(true);
             toast({ title: 'OTP Sent', description: 'An OTP has been sent to your phone number.' });
         } catch (error: any) {
             console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: error.message });
+             toast({ variant: 'destructive', title: 'Error sending OTP', description: error.message });
         } finally {
             setIsLoading(false);
         }
@@ -128,4 +149,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

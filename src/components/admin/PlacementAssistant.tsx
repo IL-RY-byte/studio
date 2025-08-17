@@ -12,33 +12,20 @@ import { getPlacementSuggestions } from '@/app/admin/editor/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { ObjectType } from '@/lib/types';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface PlacementAssistantProps {
-  floorPlanFile: File | null;
+  floorPlanUrl: string | null; 
   onSuggestions: (suggestions: any[]) => void;
   disabled?: boolean;
 }
 
-export default function PlacementAssistant({ floorPlanFile, onSuggestions, disabled }: PlacementAssistantProps) {
+export default function PlacementAssistant({ floorPlanUrl, onSuggestions, disabled }: PlacementAssistantProps) {
   const [objectType, setObjectType] = useState<ObjectType>('table');
   const [exampleLayouts, setExampleLayouts] = useState<string[]>([]);
   const [exampleFiles, setExampleFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [floorPlanDataUri, setFloorPlanDataUri] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (floorPlanFile) {
-        const reader = new FileReader();
-        reader.readAsDataURL(floorPlanFile);
-        reader.onload = (event) => {
-            setFloorPlanDataUri(event.target?.result as string);
-        };
-    } else {
-        setFloorPlanDataUri(null);
-    }
-  }, [floorPlanFile]);
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -64,7 +51,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions, disab
   }
 
   const handleGetSuggestions = async () => {
-    if (!floorPlanDataUri) {
+    if (!floorPlanUrl) {
       toast({
         variant: "destructive",
         title: "No Floor Plan",
@@ -75,7 +62,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions, disab
 
     setIsLoading(true);
 
-    const result = await getPlacementSuggestions({ floorPlanDataUri, objectType, exampleLayouts });
+    const result = await getPlacementSuggestions({ floorPlanDataUri: floorPlanUrl, objectType, exampleLayouts });
     
     setIsLoading(false);
 

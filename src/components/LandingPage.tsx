@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Star, Shuffle, Smartphone, BotMessageSquare } from 'lucide-react';
+import { ArrowRight, Star, Shuffle, Smartphone, UploadCloud, Save, MousePointerClick } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LandingPage() {
@@ -35,8 +36,15 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-               <div className="mx-auto flex items-center justify-center lg:order-last">
-                <BotMessageSquare className="w-48 h-48 sm:w-64 sm:h-64 lg:w-96 lg:h-96 text-primary/10" strokeWidth={1}/>
+               <div className="mx-auto flex w-full items-center justify-center lg:order-last">
+                <Image
+                  src="https://placehold.co/600x400.png"
+                  alt="Interactive Map"
+                  width={600}
+                  height={400}
+                  className="rounded-xl shadow-2xl"
+                  data-ai-hint="interactive map"
+                />
                </div>
             </div>
           </div>
@@ -79,6 +87,48 @@ export default function LandingPage() {
                 <h3 className="text-xl font-bold">Mobile-Friendly</h3>
                 <p className="text-sm text-muted-foreground">
                   Customers can easily browse and book from any device, with a responsive design that looks great everywhere.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How It Works</h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  Get your interactive venue map up and running in three simple steps.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3 lg:gap-12">
+              <div className="grid gap-4">
+                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                    <UploadCloud className="h-8 w-8" />
+                 </div>
+                <h3 className="text-xl font-bold text-center">1. Upload Your Floor Plan</h3>
+                <p className="text-muted-foreground text-center">
+                  Start by uploading an image of your venue's layout. It can be a simple sketch or a detailed architectural drawing.
+                </p>
+              </div>
+              <div className="grid gap-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                    <MousePointerClick className="h-8 w-8" />
+                 </div>
+                <h3 className="text-xl font-bold text-center">2. Design Your Space</h3>
+                <p className="text-muted-foreground text-center">
+                  Use the drag-and-drop editor to place tables, chairs, and other objects. Use the AI assistant for smart layout suggestions.
+                </p>
+              </div>
+              <div className="grid gap-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                    <Save className="h-8 w-8" />
+                 </div>
+                <h3 className="text-xl font-bold text-center">3. Save and Go Live</h3>
+                <p className="text-muted-foreground text-center">
+                  Save your map, and it's instantly available for customers to view and make bookings. It's that simple!
                 </p>
               </div>
             </div>

@@ -18,7 +18,7 @@ const SuggestObjectPlacementInputSchema = z.object({
       "A floor plan image of a restaurant or venue, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   objectType: z.string().describe('The type of object to place (e.g., table, sunbed).'),
-  exampleLayouts: z.array(z.string()).optional().describe('Data URIs of example layouts to guide object placement'),
+  exampleLayouts: z.array(z.string()).optional().describe('An array of data URIs of example layouts to guide the object placement.'),
 });
 export type SuggestObjectPlacementInput = z.infer<typeof SuggestObjectPlacementInputSchema>;
 
@@ -43,14 +43,22 @@ const prompt = ai.definePrompt({
   name: 'suggestObjectPlacementPrompt',
   input: {schema: SuggestObjectPlacementInputSchema},
   output: {schema: SuggestObjectPlacementOutputSchema},
-  prompt: `You are an expert AI interior designer for restaurants. Your task is to suggest optimal placements for objects like tables within a given floor plan.
+  prompt: `You are an expert AI interior designer and space planner. Your task is to suggest optimal placements for objects within a given floor plan.
 
-You must analyze the provided floor plan image, considering factors like walkways, entrances, exits, and potential high-traffic areas. The placements should ensure comfortable customer flow, maximize seating capacity without feeling cramped, and create an aesthetically pleasing layout.
+You must analyze the provided floor plan image, considering factors like walkways, entrances, exits, and potential high-traffic areas. The placements should ensure comfortable customer flow, maximize capacity without feeling cramped, and create an aesthetically pleasing and functional layout.
+
+Object type to place: {{{objectType}}}
 
 Floor plan to analyze:
 {{media url=floorPlanDataUri}}
 
-Object type to place: {{{objectType}}}
+{{#if exampleLayouts}}
+Use the following images as inspiration for the layout style. Try to match the density, spacing, and overall aesthetic of these examples.
+{{#each exampleLayouts}}
+Example Layout Image:
+{{media url=this}}
+{{/each}}
+{{/if}}
 
 Based on your analysis, provide a list of suggested placements. Each suggestion must include x and y coordinates (as percentages of the total width and height) and a confidence score indicating how certain you are about the placement.
 `,

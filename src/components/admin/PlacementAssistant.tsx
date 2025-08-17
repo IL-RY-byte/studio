@@ -3,11 +3,14 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BotMessageSquare, Sparkles, Loader2 } from 'lucide-react';
+import { BotMessageSquare, Sparkles, Loader2, Upload, X } from 'lucide-react';
 import { getPlacementSuggestions } from '@/app/admin/editor/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { ObjectType } from '@/lib/types';
+import Image from 'next/image';
 
 interface PlacementAssistantProps {
   floorPlanFile: File | null;
@@ -16,8 +19,33 @@ interface PlacementAssistantProps {
 
 export default function PlacementAssistant({ floorPlanFile, onSuggestions }: PlacementAssistantProps) {
   const [objectType, setObjectType] = useState<ObjectType>('table');
+  const [exampleLayouts, setExampleLayouts] = useState<string[]>([]);
+  const [exampleFiles, setExampleFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+     if (files.length + exampleLayouts.length > 3) {
+      toast({ variant: "destructive", title: "Maximum 3 examples allowed."});
+      return;
+    }
+
+    setExampleFiles(prev => [...prev, ...files]);
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setExampleLayouts(prev => [...prev, event.target?.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeExample = (index: number) => {
+    setExampleLayouts(prev => prev.filter((_, i) => i !== index));
+    setExampleFiles(prev => prev.filter((_, i) => i !== index));
+  }
 
   const handleGetSuggestions = async () => {
     if (!floorPlanFile) {
@@ -35,7 +63,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
     reader.readAsDataURL(floorPlanFile);
     reader.onload = async (event) => {
         const floorPlanDataUri = event.target?.result as string;
-        const result = await getPlacementSuggestions({ floorPlanDataUri, objectType });
+        const result = await getPlacementSuggestions({ floorPlanDataUri, objectType, exampleLayouts });
         
         setIsLoading(false);
 
@@ -65,7 +93,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="text-sm font-medium">Object Type</label>
+          <Label>Object Type</Label>
           <Select value={objectType} onValueChange={(value) => setObjectType(value as ObjectType)}>
             <SelectTrigger>
               <SelectValue placeholder="Select an object" />
@@ -74,9 +102,36 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
               <SelectItem value="table">Table</SelectItem>
               <SelectItem value="sunbed">Sunbed</SelectItem>
               <SelectItem value="workspace">Workspace</SelectItem>
+              <SelectItem value="boat">Boat/Jet Ski</SelectItem>
+              <SelectItem value="room">Room/House</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        <div className="space-y-2">
+          <Label>Inspiration (Optional)</Label>
+          <CardDescription className="text-xs">Provide up to 3 example layouts.</CardDescription>
+          <div className="grid grid-cols-3 gap-2">
+            {exampleLayouts.map((src, index) => (
+              <div key={index} className="relative aspect-square">
+                <Image src={src} alt={`Example ${index + 1}`} layout="fill" objectFit="cover" className="rounded-md" />
+                <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeExample(index)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+           {exampleLayouts.length < 3 && (
+            <Button asChild variant="outline" className="w-full">
+              <label htmlFor="example-upload" className="cursor-pointer">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Examples
+              </label>
+            </Button>
+           )}
+          <input id="example-upload" type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
+        </div>
+
         <Button onClick={handleGetSuggestions} disabled={isLoading || !floorPlanFile} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -6,8 +6,8 @@ import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon } from '../ico
 import type { ObjectType } from '@/lib/types';
 
 const paletteItems: { type: ObjectType; name: string; icon: React.ElementType }[] = [
-  { type: 'sunbed', name: 'Sunbed', icon: SunbedIcon },
   { type: 'table', name: 'Table', icon: TableIcon },
+  { type: 'sunbed', name: 'Sunbed', icon: SunbedIcon },
   { type: 'workspace', name: 'Workspace', icon: WorkspaceIcon },
   { type: 'boat', name: 'Boat/Jet Ski', icon: BoatIcon },
   { type: 'room', name: 'Room/House', icon: RoomIcon },

@@ -12,7 +12,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { BotMessageSquare, LayoutGrid, Users, BarChart } from 'lucide-react';
+import { BotMessageSquare, LayoutGrid, Users, BarChart, Compass } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
@@ -36,6 +36,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link href="/admin/dashboard">
                     <BarChart />
                     Dashboard
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/locations')}>
+                  <Link href="/admin/locations">
+                    <Compass />
+                    Locations
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -18,7 +18,7 @@ const Header = () => {
             </Link>
           </Button>
           <Button asChild variant="ghost">
-            <Link href="#">
+            <Link href="/locations">
               <Compass className="mr-2 h-4 w-4" />
               Locations
             </Link>

@@ -64,6 +64,10 @@ export default function LocationsPage() {
         const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         const updatedStoredLocations = [...storedLocations, newLocation];
         localStorage.setItem('planwise-locations', JSON.stringify(updatedStoredLocations));
+        
+        // Also pre-populate the map editor data for the new location
+        const mapDataKey = `planwise-map-data-${newLocation.id}`;
+        localStorage.setItem(mapDataKey, JSON.stringify(newLocation));
 
         const updatedLocationsForState = [...locations, newLocation];
         setLocations(updatedLocationsForState);
@@ -91,7 +95,7 @@ export default function LocationsPage() {
                                 <CardHeader>
                                     <div className="aspect-[4/3] relative mb-4">
                                         <Image
-                                            src={location.floors[0].floorPlanUrl || 'https://placehold.co/400x300.png'}
+                                            src={(location.floors && location.floors[0]?.floorPlanUrl) || 'https://placehold.co/400x300.png'}
                                             alt={`${location.name} Floor Plan`}
                                             layout="fill"
                                             objectFit="cover"
@@ -101,7 +105,7 @@ export default function LocationsPage() {
                                     <CardTitle>{location.name}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground">{location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)} objects across {location.floors.length} floor(s)</p>
+                                    <p className="text-sm text-muted-foreground">{(location.floors && location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)) || 0} objects across {location.floors?.length || 0} floor(s)</p>
                                 </CardContent>
                                 <CardFooter className="flex justify-between gap-2">
                                      <Button variant="outline" size="sm" asChild>

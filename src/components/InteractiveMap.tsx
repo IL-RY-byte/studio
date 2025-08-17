@@ -1,0 +1,52 @@
+'use client';
+
+import { type FC, useState } from 'react';
+import Image from 'next/image';
+import type { Location, BookableObject } from '@/lib/types';
+import ObjectMarker from './ObjectMarker';
+import BookingSheet from './BookingSheet';
+
+interface InteractiveMapProps {
+  location: Location;
+}
+
+const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
+  const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
+
+  const handleObjectClick = (obj: BookableObject) => {
+    if (obj.status !== 'Occupied') {
+      setSelectedObject(obj);
+    }
+  };
+
+  const handleSheetOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSelectedObject(null);
+    }
+  };
+
+  return (
+    <div className="relative w-full h-[calc(100vh-57px)]">
+      <Image
+        src={location.floorPlanUrl}
+        alt={`${location.name} Floor Plan`}
+        layout="fill"
+        objectFit="cover"
+        className="pointer-events-none"
+        data-ai-hint="beach aerial"
+      />
+      <div className="absolute inset-0">
+        {location.objects.map((obj) => (
+          <ObjectMarker key={obj.id} object={obj} onClick={handleObjectClick} />
+        ))}
+      </div>
+      <BookingSheet
+        object={selectedObject}
+        isOpen={!!selectedObject}
+        onOpenChange={handleSheetOpenChange}
+      />
+    </div>
+  );
+};
+
+export default InteractiveMap;

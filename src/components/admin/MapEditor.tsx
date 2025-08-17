@@ -86,17 +86,20 @@ export default function MapEditor() {
         }
         
         setActiveLocation(dataToLoad);
-        const currentFloor = dataToLoad.floors[0];
-        setActiveFloor(currentFloor);
+        if (dataToLoad.floors && dataToLoad.floors.length > 0) {
+            const currentFloor = dataToLoad.floors[0];
+            setActiveFloor(currentFloor);
 
-
-        if(currentFloor.floorPlanUrl){
-            fetch(currentFloor.floorPlanUrl)
-                .then(res => res.blob())
-                .then(blob => {
-                    const file = new File([blob], `${dataToLoad.id}-plan.png`, { type: blob.type });
-                    setFloorPlanFile(file);
-                });
+            if(currentFloor.floorPlanUrl){
+                fetch(currentFloor.floorPlanUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const file = new File([blob], `${dataToLoad.id}-plan.png`, { type: blob.type });
+                        setFloorPlanFile(file);
+                    });
+            }
+        } else {
+            setActiveFloor(null);
         }
     }
 
@@ -355,7 +358,7 @@ export default function MapEditor() {
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
-              <Button variant="destructive" onClick={handleClear} disabled={activeFloor?.objects.length === 0 && suggestions.length === 0}>
+              <Button variant="destructive" onClick={handleClear} disabled={!activeFloor || (activeFloor.objects.length === 0 && suggestions.length === 0)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
               </Button>

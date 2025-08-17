@@ -11,6 +11,7 @@ import type { Location } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/Header";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 const defaultLocations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
 
@@ -19,11 +20,27 @@ export default function LocationsPage() {
 
     useEffect(() => {
         const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        
         const allLocations = [...defaultLocations, ...storedLocations];
         
         const uniqueLocations = allLocations.reduce((acc, current) => {
-            if (!acc.find((item) => item.id === current.id)) {
-                acc.push(current);
+            const editorData = localStorage.getItem(`planwise-map-data-${current.id}`);
+            if (editorData) {
+                try {
+                    const parsedData = JSON.parse(editorData);
+                    if (!acc.find((item) => item.id === parsedData.id)) {
+                        acc.push(parsedData);
+                    }
+                } catch(e) {
+                    console.error("failed to parse", e)
+                     if (!acc.find((item) => item.id === current.id)) {
+                        acc.push(current);
+                    }
+                }
+            } else {
+                 if (!acc.find((item) => item.id === current.id)) {
+                    acc.push(current);
+                }
             }
             return acc;
         }, [] as Location[]);
@@ -49,21 +66,51 @@ export default function LocationsPage() {
                             {locations.map((location) => (
                                 <Card key={location.id} className="overflow-hidden">
                                     <CardHeader className="p-0">
-                                        <div className="aspect-video relative">
-                                            <Image
-                                                src={location.coverImageUrl || 'https://placehold.co/400x300.png'}
-                                                alt={`Photo of ${location.name}`}
-                                                layout="fill"
-                                                objectFit="cover"
-                                                data-ai-hint="restaurant interior"
-                                                className="bg-muted"
-                                            />
-                                        </div>
+                                      <Carousel className="w-full">
+                                        <CarouselContent>
+                                          {location.floors && location.floors.length > 0 ? (
+                                            location.floors.map((floor, index) => (
+                                              <CarouselItem key={floor.id}>
+                                                <div className="aspect-video relative">
+                                                  <Image
+                                                    src={floor.floorPlanUrl || 'https://placehold.co/400x300.png'}
+                                                    alt={`Floor plan for ${floor.name}`}
+                                                    layout="fill"
+                                                    objectFit="cover"
+                                                    className="bg-muted"
+                                                    data-ai-hint="restaurant floor plan"
+                                                  />
+                                                   <div className="absolute bottom-2 right-2 bg-background/80 px-2 py-1 rounded-md text-xs">{floor.name}</div>
+                                                </div>
+                                              </CarouselItem>
+                                            ))
+                                          ) : (
+                                            <CarouselItem>
+                                              <div className="aspect-video relative">
+                                                <Image
+                                                  src={'https://placehold.co/400x300.png'}
+                                                  alt={`Photo of ${location.name}`}
+                                                  layout="fill"
+                                                  objectFit="cover"
+                                                  data-ai-hint="restaurant interior"
+                                                  className="bg-muted"
+                                                />
+                                              </div>
+                                            </CarouselItem>
+                                          )}
+                                        </CarouselContent>
+                                        {(location.floors && location.floors.length > 1) && (
+                                            <>
+                                                <CarouselPrevious className="left-4" />
+                                                <CarouselNext className="right-4" />
+                                            </>
+                                        )}
+                                      </Carousel>
                                     </CardHeader>
                                     <CardContent className="p-6">
                                         <CardTitle className="mb-2">{location.name}</CardTitle>
                                         <p className="text-sm text-muted-foreground">
-                                            {location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)} bookable items available
+                                            {location.floors.map(f => f.objects.length).reduce((a, b) => a + b, 0)} bookable items across {location.floors.length} floor(s)
                                         </p>
                                     </CardContent>
                                     <CardFooter className="bg-muted/50 p-4">

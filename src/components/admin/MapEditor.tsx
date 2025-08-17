@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -6,7 +7,7 @@ import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save, Edit } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit, PlusCircle } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +22,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 
 const allLocations: Record<string, Location> = {
@@ -58,6 +72,8 @@ export default function MapEditor() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
+  const [newFloorName, setNewFloorName] = useState('');
   const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -120,6 +136,21 @@ export default function MapEditor() {
       setPaletteItems(prev => [...prev, ...JSON.parse(customItems).map((item: any) => ({...item, icon: Box}))]);
     }
   }, [locationId, toast]);
+  
+  useEffect(() => {
+    // When activeFloor changes, update floorPlanFile if needed
+    if (activeFloor?.floorPlanUrl) {
+      fetch(activeFloor.floorPlanUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], `${activeFloor.id}-plan.png`, { type: blob.type });
+          setFloorPlanFile(file);
+        });
+    } else {
+      setFloorPlanFile(null);
+    }
+  }, [activeFloor]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -199,6 +230,17 @@ export default function MapEditor() {
     setActiveFloor({...activeFloor, objects: [...activeFloor.objects, newObject]});
     setSuggestions((prev) => prev.filter(s => s !== suggestion));
   };
+  
+  const updateActiveLocationAndSave = (newLocation: Location) => {
+    setActiveLocation(newLocation);
+    const localStorageKey = getLocalStorageKey(newLocation.id);
+    try {
+      localStorage.setItem(localStorageKey, JSON.stringify(newLocation));
+    } catch (error) {
+      console.error('Failed to save map:', error);
+    }
+  };
+
 
   const handleSaveMap = () => {
     if (!activeFloor || !activeLocation) {
@@ -210,15 +252,8 @@ export default function MapEditor() {
       ...activeLocation,
       floors: updatedFloors
     };
-
-    const localStorageKey = getLocalStorageKey(activeLocation.id);
-    try {
-      localStorage.setItem(localStorageKey, JSON.stringify(mapData));
-      toast({ title: 'Map Saved!', description: `Your map for ${activeLocation.name} has been saved locally.` });
-    } catch (error) {
-      console.error('Failed to save map:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not save the map.' });
-    }
+    updateActiveLocationAndSave(mapData);
+    toast({ title: 'Map Saved!', description: `Your map for ${activeLocation.name} has been saved locally.` });
   };
   
   const handleObjectDragStart = (e: React.DragEvent<HTMLButtonElement>, obj: BookableObject) => {
@@ -265,16 +300,53 @@ export default function MapEditor() {
 
     toast({ title: 'Custom Item Added', description: `${item.name} has been added to the palette.` });
   };
+  
+  const handleAddFloor = () => {
+    if (!activeLocation || !newFloorName.trim()) {
+        toast({variant: 'destructive', title: 'Floor name is required'});
+        return;
+    };
+    const newFloor: Floor = {
+        id: `floor-${Date.now()}`,
+        name: newFloorName,
+        floorPlanUrl: '',
+        objects: [],
+    };
+    const updatedLocation = {
+        ...activeLocation,
+        floors: [...activeLocation.floors, newFloor]
+    };
+    updateActiveLocationAndSave(updatedLocation);
+    setActiveFloor(newFloor);
+    setNewFloorName('');
+    setIsAddFloorOpen(false);
+    toast({title: 'Floor Added', description: `Successfully added ${newFloor.name}`});
+  }
+
+  const handleDeleteFloor = () => {
+    if (!activeLocation || !activeFloor || activeLocation.floors.length <= 1) {
+        toast({variant: 'destructive', title: 'Cannot Delete', description: 'You must have at least one floor.'});
+        return;
+    };
+    const updatedFloors = activeLocation.floors.filter(f => f.id !== activeFloor.id);
+    const updatedLocation = {
+        ...activeLocation,
+        floors: updatedFloors
+    };
+    updateActiveLocationAndSave(updatedLocation);
+    setActiveFloor(updatedFloors[0] || null);
+    toast({title: 'Floor Deleted'});
+  }
 
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-             {activeLocation && activeLocation.floors && activeLocation.floors.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+             {activeLocation && activeLocation.floors && activeLocation.floors.length > 0 && (
                 <Select value={activeFloor?.id} onValueChange={(id) => setActiveFloor(activeLocation.floors.find(f => f.id === id) || null)}>
-                    <SelectTrigger className="w-[280px]">
+                    <SelectTrigger className="w-full sm:w-[280px]">
                         <SelectValue placeholder="Select a floor" />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,6 +356,30 @@ export default function MapEditor() {
                     </SelectContent>
                 </Select>
              )}
+             <Button variant="outline" size="sm" onClick={() => setIsAddFloorOpen(true)}>
+                <PlusCircle className="mr-2" />
+                Add Floor
+             </Button>
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={!activeLocation || !activeLocation.floors || activeLocation.floors.length <= 1}>
+                        <Trash2 className="mr-2" />
+                        Delete Floor
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the floor plan and all its objects.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteFloor}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           </div>
           <div 
             ref={mapContainerRef}
@@ -380,6 +476,30 @@ export default function MapEditor() {
         object={selectedObject}
         onSave={handleUpdateObject}
       />
+      
+      <AlertDialog open={isAddFloorOpen} onOpenChange={setIsAddFloorOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Add a New Floor</AlertDialogTitle>
+            <AlertDialogDescription>
+                Enter a name for the new floor or area in your location.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+                <Label htmlFor="new-floor-name">Floor Name</Label>
+                <Input 
+                    id="new-floor-name" 
+                    value={newFloorName} 
+                    onChange={(e) => setNewFloorName(e.target.value)}
+                    placeholder="e.g., 'Rooftop Terrace'"
+                />
+            </div>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddFloor}>Add Floor</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }

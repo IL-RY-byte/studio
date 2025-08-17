@@ -29,8 +29,21 @@ export default function EditLocationPage() {
     useEffect(() => {
         const fetchLocation = () => {
             const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+            const mapDataFromStorage = localStorage.getItem(`planwise-map-data-${id}`);
+
             const allVenues = [...locationsFromStorage, ...allDefaultLocations];
-            const foundLocation = allVenues.find(l => l.id === id);
+            let foundLocation = allVenues.find(l => l.id === id) || null;
+
+            if (mapDataFromStorage && foundLocation) {
+                 try {
+                    const parsedLayout = JSON.parse(mapDataFromStorage);
+                    if (parsedLayout.id === id) {
+                        foundLocation = parsedLayout;
+                    }
+                } catch (error) {
+                    console.error("Failed to parse saved map data.", error);
+                }
+            }
 
             if (foundLocation) {
                 setLocation(foundLocation);
@@ -45,21 +58,40 @@ export default function EditLocationPage() {
     const handleSave = async () => {
         if (!location) return;
         setIsSaving(true);
-        // Simulate API call to save location data
-        await new Promise(resolve => setTimeout(resolve, 1500));
         
+        // This combines the location details with the map editor data
+        const mapDataKey = `planwise-map-data-${location.id}`;
+        const mapDataFromStorage = localStorage.getItem(mapDataKey);
+        let finalDataToSave = { ...location };
+
+        if (mapDataFromStorage) {
+            try {
+                const parsedMapData = JSON.parse(mapDataFromStorage);
+                // Ensure floors from map editor are preserved
+                finalDataToSave.floors = parsedMapData.floors; 
+            } catch (error) {
+                console.error("Could not merge map data", error);
+            }
+        }
+        
+        // Save to the main 'planwise-locations' list which is used for the locations page
         const locationsFromStorage: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         let updatedLocations = locationsFromStorage.filter(loc => !allDefaultLocations.some(def => def.id === loc.id));
-        
         const existingIndex = updatedLocations.findIndex((loc) => loc.id === id);
-
         if (existingIndex > -1) {
-            updatedLocations[existingIndex] = location;
+            updatedLocations[existingIndex] = {
+                ...updatedLocations[existingIndex],
+                ...finalDataToSave,
+            };
         } else {
-            updatedLocations.push(location);
+            updatedLocations.push(finalDataToSave);
         }
-
         localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
+        
+        // Also update the dedicated key for the map editor to have the latest details
+        localStorage.setItem(mapDataKey, JSON.stringify(finalDataToSave));
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         setIsSaving(false);
         toast({ title: 'Location Updated', description: `${location?.name} has been successfully saved.` });
@@ -75,6 +107,7 @@ export default function EditLocationPage() {
         const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         const updatedLocations = locationsFromStorage.filter((loc: Location) => loc.id !== location.id);
         localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
+        localStorage.removeItem(`planwise-map-data-${location.id}`);
         toast({ title: 'Location Deleted', description: `${location.name} has been removed.` });
         router.push('/admin/locations');
     }
@@ -128,21 +161,21 @@ export default function EditLocationPage() {
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="address">Address</Label>
-                                <Input id="address" name="address" placeholder="123 Main St, Anytown, USA" />
+                                <Input id="address" name="address" placeholder="123 Main St, Anytown, USA" value={location.address || ''} onChange={handleInputChange} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Phone Number</Label>
-                                    <Input id="phone" name="phone" placeholder="+1 (555) 123-4567" />
+                                    <Input id="phone" name="phone" placeholder="+1 (555) 123-4567" value={location.phone || ''} onChange={handleInputChange} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
-                                    <Input id="email" name="email" type="email" placeholder="contact@yourvenue.com" />
+                                    <Input id="email" name="email" type="email" placeholder="contact@yourvenue.com" value={location.email || ''} onChange={handleInputChange} />
                                 </div>
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="website">Website / Social Media</Label>
-                                <Input id="website" name="website" placeholder="https://yourvenue.com" />
+                                <Input id="website" name="website" placeholder="https://yourvenue.com" value={location.website || ''} onChange={handleInputChange} />
                             </div>
                         </CardContent>
                     </Card>
@@ -154,11 +187,11 @@ export default function EditLocationPage() {
                         <CardContent className="space-y-4">
                              <div className="space-y-2">
                                 <Label htmlFor="cuisine">Type of Cuisine</Label>
-                                <Input id="cuisine" name="cuisine" placeholder="e.g., Italian, Japanese, Fusion" />
+                                <Input id="cuisine" name="cuisine" placeholder="e.g., Italian, Japanese, Fusion" value={location.cuisine || ''} onChange={handleInputChange} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Popular Dishes / Special Offers</Label>
-                                <Textarea id="specials" name="specials" placeholder="- Margherita Pizza&#10;- Carbonara Pasta&#10;- Tiramisu" />
+                                <Textarea id="specials" name="specials" placeholder="- Margherita Pizza&#10;- Carbonara Pasta&#10;- Tiramisu" value={location.specials?.join('\n') || ''} onChange={(e) => setLocation(prev => prev ? { ...prev, specials: e.target.value.split('\n') } : null)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -205,10 +238,26 @@ export default function EditLocationPage() {
                              <CardTitle className="text-red-500">Danger Zone</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Button variant="destructive" className="w-full" onClick={handleDelete}>
-                                <Trash2 className="mr-2" />
-                                Delete Location
-                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full">
+                                        <Trash2 className="mr-2" />
+                                        Delete Location
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this location and all its data.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </CardContent>
                     </Card>
                 </div>

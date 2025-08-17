@@ -1,6 +1,7 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, BotMessageSquare, Map, Compass } from 'lucide-react';
+import { LayoutGrid, BotMessageSquare, Map, Compass, LogIn } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -26,6 +27,12 @@ const Header = () => {
         </nav>
         <div className="flex-1" />
         <nav className="flex items-center gap-4">
+          <Button asChild>
+            <Link href="/login">
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/admin">
               <LayoutGrid className="mr-2 h-4 w-4" />

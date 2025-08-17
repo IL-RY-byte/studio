@@ -1,3 +1,4 @@
+
 export type ObjectStatus = 'Free' | 'Reserved' | 'Occupied';
 
 export type ObjectType = 'sunbed' | 'table' | 'workspace' | 'boat' | 'room' | string;
@@ -12,12 +13,18 @@ export type BookableObject = {
   status: ObjectStatus;
 };
 
+export type Floor = {
+  id: string;
+  name: string;
+  floorPlanUrl: string;
+  objects: BookableObject[];
+};
+
 export type Location = {
   id: string;
   name: string;
   description?: string;
-  floorPlanUrl: string;
-  objects: BookableObject[];
+  floors: Floor[];
   address?: string;
   phone?: string;
   email?: string;

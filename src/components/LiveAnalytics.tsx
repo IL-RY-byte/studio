@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -22,13 +23,14 @@ const COLORS: Record<string, string> = {
 
 export default function LiveAnalytics({ location }: LiveAnalyticsProps) {
   const analyticsData = useMemo(() => {
-    const statusCounts = location.objects.reduce((acc, obj) => {
+    const allObjects = location.floors.flatMap(f => f.objects);
+    const statusCounts = allObjects.reduce((acc, obj) => {
       acc[obj.status] = (acc[obj.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-  }, [location.objects]);
+  }, [location.floors]);
 
   return (
     <div className="space-y-6">

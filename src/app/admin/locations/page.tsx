@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -52,8 +53,12 @@ export default function LocationsPage() {
         const newLocation: Location = {
             id: `custom-${Date.now()}`,
             name: newLocationName,
-            floorPlanUrl: '',
-            objects: [],
+            floors: [{
+                id: `floor-${Date.now()}`,
+                name: 'Main Floor',
+                floorPlanUrl: '',
+                objects: []
+            }],
         };
         
         const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
@@ -86,7 +91,7 @@ export default function LocationsPage() {
                                 <CardHeader>
                                     <div className="aspect-[4/3] relative mb-4">
                                         <Image
-                                            src={location.floorPlanUrl || 'https://placehold.co/400x300.png'}
+                                            src={location.floors[0].floorPlanUrl || 'https://placehold.co/400x300.png'}
                                             alt={`${location.name} Floor Plan`}
                                             layout="fill"
                                             objectFit="cover"
@@ -96,7 +101,7 @@ export default function LocationsPage() {
                                     <CardTitle>{location.name}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground">{location.objects.length} objects</p>
+                                    <p className="text-sm text-muted-foreground">{location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)} objects across {location.floors.length} floor(s)</p>
                                 </CardContent>
                                 <CardFooter className="flex justify-between gap-2">
                                      <Button variant="outline" size="sm" asChild>

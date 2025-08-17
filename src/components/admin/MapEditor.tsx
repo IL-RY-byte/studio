@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { BookableObject, ObjectType, Location, PaletteItem } from '@/lib/types';
+import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@/lib/types';
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,14 @@ import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon, Box } from '.
 import EditObjectDialog from './EditObjectDialog';
 import { useSearchParams } from 'next/navigation';
 import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const allLocations: Record<string, Location> = {
   'restaurant-1': restaurantLocation,
@@ -45,9 +53,8 @@ const getLocalStorageKey = (locationId: string) => `planwise-map-data-${location
 
 
 export default function MapEditor() {
-  const [floorPlan, setFloorPlan] = useState<string | null>(null);
+  const [activeFloor, setActiveFloor] = useState<Floor | null>(null);
   const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
-  const [objects, setObjects] = useState<BookableObject[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -79,11 +86,12 @@ export default function MapEditor() {
         }
         
         setActiveLocation(dataToLoad);
-        setFloorPlan(dataToLoad.floorPlanUrl);
-        setObjects(dataToLoad.objects);
+        const currentFloor = dataToLoad.floors[0];
+        setActiveFloor(currentFloor);
 
-        if(dataToLoad.floorPlanUrl){
-            fetch(dataToLoad.floorPlanUrl)
+
+        if(currentFloor.floorPlanUrl){
+            fetch(currentFloor.floorPlanUrl)
                 .then(res => res.blob())
                 .then(blob => {
                     const file = new File([blob], `${dataToLoad.id}-plan.png`, { type: blob.type });
@@ -92,10 +100,15 @@ export default function MapEditor() {
         }
     }
 
-    if (locationId && allLocations[locationId]) {
-        loadMapData(allLocations[locationId]);
+    const customLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+    const allVenues: Record<string, Location> = customLocations.reduce((acc, loc) => {
+        acc[loc.id] = loc;
+        return acc;
+    }, {...allLocations});
+
+    if (locationId && allVenues[locationId]) {
+        loadMapData(allVenues[locationId]);
     } else {
-        // Fallback to a default or show an error/selector
         loadMapData(restaurantLocation);
     }
     
@@ -107,12 +120,13 @@ export default function MapEditor() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && activeFloor) {
       setFloorPlanFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
-        setFloorPlan(event.target?.result as string);
-        setObjects([]);
+        const newFloorPlanUrl = event.target?.result as string;
+        const updatedFloor = { ...activeFloor, floorPlanUrl: newFloorPlanUrl, objects: [] };
+        setActiveFloor(updatedFloor);
         setSuggestions([]);
       };
       reader.readAsDataURL(file);
@@ -125,8 +139,8 @@ export default function MapEditor() {
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!mapContainerRef.current) return;
-    setDraggingObject(null); // Clear dragging state on any drop
+    if (!mapContainerRef.current || !activeFloor) return;
+    setDraggingObject(null);
 
     const type = e.dataTransfer.getData('objectType') as ObjectType;
     const existingObjectId = e.dataTransfer.getData('objectId');
@@ -134,60 +148,66 @@ export default function MapEditor() {
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
+    let newObjects: BookableObject[];
+
     if (existingObjectId) {
-      // Move existing object
-      setObjects((prev) =>
-        prev.map((obj) =>
-          obj.id === existingObjectId ? { ...obj, position: { x, y } } : obj
-        )
+      newObjects = activeFloor.objects.map((obj) =>
+        obj.id === existingObjectId ? { ...obj, position: { x, y } } : obj
       );
     } else if (type) {
-      // Add new object from palette
       const newObject: BookableObject = {
         id: `${type}-${Date.now()}`,
-        name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${objects.filter(o => o.type === type).length + 1}`,
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${activeFloor.objects.filter(o => o.type === type).length + 1}`,
         type: type,
         description: `A new ${type}.`,
         price: 25,
         position: { x, y },
         status: 'Free',
       };
-      setObjects((prev) => [...prev, newObject]);
+      newObjects = [...activeFloor.objects, newObject];
+    } else {
+        return;
     }
+
+    setActiveFloor({...activeFloor, objects: newObjects});
     setSuggestions([]);
   };
 
   const handleClear = () => {
-    setObjects([]);
-    setSuggestions([]);
-    toast({ title: "Canvas Cleared", description: "All objects have been removed from the map." });
+    if (activeFloor) {
+        setActiveFloor({...activeFloor, objects: []});
+        setSuggestions([]);
+        toast({ title: "Canvas Cleared", description: "All objects have been removed from the map." });
+    }
   };
   
   const handleAcceptSuggestion = (suggestion: Suggestion) => {
+    if (!activeFloor) return;
     const objectType = 'table'; 
     const newObject: BookableObject = {
       id: `${objectType}-${Date.now()}`,
-      name: `${objectType.charAt(0).toUpperCase() + objectType.slice(1)} ${objects.filter(o => o.type === objectType).length + 1}`,
+      name: `${objectType.charAt(0).toUpperCase() + objectType.slice(1)} ${activeFloor.objects.filter(o => o.type === objectType).length + 1}`,
       type: objectType,
       description: 'Placed by AI assistant.',
       price: 20,
       position: { x: suggestion.x, y: suggestion.y },
       status: 'Free',
     };
-    setObjects((prev) => [...prev, newObject]);
+    setActiveFloor({...activeFloor, objects: [...activeFloor.objects, newObject]});
     setSuggestions((prev) => prev.filter(s => s !== suggestion));
   };
 
   const handleSaveMap = () => {
-    if (!floorPlan || !activeLocation) {
+    if (!activeFloor || !activeLocation) {
       toast({ variant: 'destructive', title: 'Cannot Save', description: 'Please upload a floor plan first.' });
       return;
     }
+    const updatedFloors = activeLocation.floors.map(f => f.id === activeFloor.id ? activeFloor : f);
     const mapData: Location = {
       ...activeLocation,
-      floorPlanUrl: floorPlan,
-      objects,
+      floors: updatedFloors
     };
+
     const localStorageKey = getLocalStorageKey(activeLocation.id);
     try {
       localStorage.setItem(localStorageKey, JSON.stringify(mapData));
@@ -211,8 +231,9 @@ export default function MapEditor() {
   const handleTrashDrop = (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       const objectId = e.dataTransfer.getData('objectId');
-      if (objectId) {
-          setObjects(prev => prev.filter(obj => obj.id !== objectId));
+      if (objectId && activeFloor) {
+          const newObjects = activeFloor.objects.filter(obj => obj.id !== objectId);
+          setActiveFloor({...activeFloor, objects: newObjects});
           toast({ title: 'Object Deleted', description: 'The object has been removed from the map.' });
       }
       setDraggingObject(null);
@@ -224,8 +245,11 @@ export default function MapEditor() {
   };
 
   const handleUpdateObject = (updatedObject: BookableObject) => {
-    setObjects(objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj));
-    toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
+    if (activeFloor) {
+        const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
+        setActiveFloor({...activeFloor, objects: newObjects});
+        toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
+    }
   };
   
   const handleAddCustomItem = (item: Omit<PaletteItem, 'icon'>) => {
@@ -244,16 +268,30 @@ export default function MapEditor() {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
         <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+             {activeLocation && activeLocation.floors.length > 1 && (
+                <Select value={activeFloor?.id} onValueChange={(id) => setActiveFloor(activeLocation.floors.find(f => f.id === id) || null)}>
+                    <SelectTrigger className="w-[280px]">
+                        <SelectValue placeholder="Select a floor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {activeLocation.floors.map(floor => (
+                            <SelectItem key={floor.id} value={floor.id}>{floor.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+             )}
+          </div>
           <div 
             ref={mapContainerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             className="relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors border-primary/20"
           >
-            {floorPlan ? (
+            {activeFloor?.floorPlanUrl ? (
               <>
-                <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
-                {objects.map((obj) => {
+                <Image src={activeFloor.floorPlanUrl} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
+                {activeFloor.objects.map((obj) => {
                   const Icon = getObjectIcon(obj.type, paletteItems);
                   return (
                     <button
@@ -309,15 +347,15 @@ export default function MapEditor() {
               <Button asChild variant="outline">
                   <label htmlFor="floor-plan-upload" className="cursor-pointer">
                       <UploadCloud className="mr-2 h-4 w-4" />
-                      {floorPlan ? 'Change Plan' : 'Upload Plan'}
+                      {activeFloor?.floorPlanUrl ? 'Change Plan' : 'Upload Plan'}
                   </label>
               </Button>
               <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-              <Button onClick={handleSaveMap} disabled={!floorPlan}>
+              <Button onClick={handleSaveMap} disabled={!activeFloor?.floorPlanUrl}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
-              <Button variant="destructive" onClick={handleClear} disabled={objects.length === 0 && suggestions.length === 0}>
+              <Button variant="destructive" onClick={handleClear} disabled={activeFloor?.objects.length === 0 && suggestions.length === 0}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
               </Button>

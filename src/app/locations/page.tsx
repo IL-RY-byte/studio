@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -62,7 +63,7 @@ export default function LocationsPage() {
                                     <CardContent className="p-6">
                                         <CardTitle className="mb-2">{location.name}</CardTitle>
                                         <p className="text-sm text-muted-foreground">
-                                            {location.objects.length} bookable items available
+                                            {location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)} bookable items available
                                         </p>
                                     </CardContent>
                                     <CardFooter className="bg-muted/50 p-4">

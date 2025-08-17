@@ -35,12 +35,26 @@ export default function LocationsPage() {
     useEffect(() => {
         const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         const allLocations = [...defaultLocations, ...storedLocations];
+        
         const uniqueLocations = allLocations.reduce((acc, current) => {
             if (!acc.find((item) => item.id === current.id)) {
-                acc.push(current);
+                const editorData = localStorage.getItem(`planwise-map-data-${current.id}`);
+                if (editorData) {
+                    try {
+                        const parsedData = JSON.parse(editorData);
+                         // Make sure we merge the latest name and other details from the editor
+                        acc.push(parsedData);
+                    } catch (e) {
+                        console.error("failed to parse", e);
+                        acc.push(current);
+                    }
+                } else {
+                    acc.push(current);
+                }
             }
             return acc;
         }, [] as Location[]);
+        
         setLocations(uniqueLocations);
     }, []);
 
@@ -95,7 +109,7 @@ export default function LocationsPage() {
                                 <CardHeader>
                                     <div className="aspect-[4/3] relative mb-4">
                                         <Image
-                                            src={(location.floors && location.floors[0]?.floorPlanUrl) || 'https://placehold.co/400x300.png'}
+                                            src={(location.coverImageUrl) || (location.floors && location.floors[0]?.floorPlanUrl) || 'https://placehold.co/400x300.png'}
                                             alt={`${location.name} Floor Plan`}
                                             layout="fill"
                                             objectFit="cover"
@@ -105,7 +119,7 @@ export default function LocationsPage() {
                                     <CardTitle>{location.name}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground">{(location.floors && location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)) || 0} objects across {location.floors?.length || 0} floor(s)</p>
+                                    <p className="text-sm text-muted-foreground">{location.floors.map(f => f.objects.length).reduce((a,b) => a+b, 0)} objects across {location.floors.length} floor(s)</p>
                                 </CardContent>
                                 <CardFooter className="flex justify-between gap-2">
                                      <Button variant="outline" size="sm" asChild>

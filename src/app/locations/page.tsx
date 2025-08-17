@@ -24,21 +24,17 @@ export default function LocationsPage() {
         const allLocations = [...defaultLocations, ...storedLocations];
         
         const uniqueLocations = allLocations.reduce((acc, current) => {
-            const editorData = localStorage.getItem(`planwise-map-data-${current.id}`);
-            if (editorData) {
-                try {
-                    const parsedData = JSON.parse(editorData);
-                    if (!acc.find((item) => item.id === parsedData.id)) {
+            if (!acc.find((item) => item.id === current.id)) {
+                 const editorData = localStorage.getItem(`planwise-map-data-${current.id}`);
+                if (editorData) {
+                    try {
+                        const parsedData = JSON.parse(editorData);
                         acc.push(parsedData);
-                    }
-                } catch(e) {
-                    console.error("failed to parse", e)
-                     if (!acc.find((item) => item.id === current.id)) {
+                    } catch(e) {
+                        console.error("failed to parse", e)
                         acc.push(current);
                     }
-                }
-            } else {
-                 if (!acc.find((item) => item.id === current.id)) {
+                } else {
                     acc.push(current);
                 }
             }
@@ -68,12 +64,13 @@ export default function LocationsPage() {
                                     <CardHeader className="p-0">
                                       <Carousel className="w-full">
                                         <CarouselContent>
-                                          {location.floors && location.floors.length > 0 ? (
+                                          {location.floors && location.floors.length > 0 && location.floors.some(f => f.floorPlanUrl) ? (
                                             location.floors.map((floor, index) => (
+                                              floor.floorPlanUrl &&
                                               <CarouselItem key={floor.id}>
                                                 <div className="aspect-video relative">
                                                   <Image
-                                                    src={floor.floorPlanUrl || 'https://placehold.co/400x300.png'}
+                                                    src={floor.floorPlanUrl}
                                                     alt={`Floor plan for ${floor.name}`}
                                                     layout="fill"
                                                     objectFit="cover"
@@ -88,7 +85,7 @@ export default function LocationsPage() {
                                             <CarouselItem>
                                               <div className="aspect-video relative">
                                                 <Image
-                                                  src={'https://placehold.co/400x300.png'}
+                                                  src={location.coverImageUrl || 'https://placehold.co/400x300.png'}
                                                   alt={`Photo of ${location.name}`}
                                                   layout="fill"
                                                   objectFit="cover"

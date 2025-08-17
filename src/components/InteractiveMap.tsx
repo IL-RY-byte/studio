@@ -20,9 +20,9 @@ interface InteractiveMapProps {
 
 const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
   const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
-  const [activeFloorId, setActiveFloorId] = useState<string>(location.floors[0].id);
+  const [activeFloorId, setActiveFloorId] = useState<string | undefined>(location.floors?.[0]?.id);
 
-  const activeFloor = location.floors.find(f => f.id === activeFloorId) || location.floors[0];
+  const activeFloor = location.floors?.find(f => f.id === activeFloorId);
 
   const handleObjectClick = (obj: BookableObject) => {
     if (obj.status !== 'Occupied') {
@@ -35,6 +35,14 @@ const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
       setSelectedObject(null);
     }
   };
+
+  if (!activeFloor) {
+    return (
+        <div className="relative w-full h-[calc(100vh-57px)] flex items-center justify-center bg-muted/50">
+            <p className="text-muted-foreground">No floor plan available for this location.</p>
+        </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-[calc(100vh-57px)]">

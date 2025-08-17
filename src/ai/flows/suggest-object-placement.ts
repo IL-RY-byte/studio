@@ -15,7 +15,7 @@ const SuggestObjectPlacementInputSchema = z.object({
   floorPlanDataUri: z
     .string()
     .describe(
-      "A floor plan image, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A floor plan image of a restaurant or venue, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   objectType: z.string().describe('The type of object to place (e.g., table, sunbed).'),
   exampleLayouts: z.array(z.string()).optional().describe('Data URIs of example layouts to guide object placement'),
@@ -25,8 +25,8 @@ export type SuggestObjectPlacementInput = z.infer<typeof SuggestObjectPlacementI
 const SuggestObjectPlacementOutputSchema = z.object({
   suggestions: z.array(
     z.object({
-      x: z.number().describe('The x-coordinate of the suggested placement.'),
-      y: z.number().describe('The y-coordinate of the suggested placement.'),
+      x: z.number().describe('The x-coordinate of the suggested placement (percentage).'),
+      y: z.number().describe('The y-coordinate of the suggested placement (percentage).'),
       confidence: z.number().describe('The confidence level of the suggestion (0-1).'),
     })
   ).describe('An array of suggested object placements with x, y coordinates, and confidence levels.'),
@@ -43,21 +43,16 @@ const prompt = ai.definePrompt({
   name: 'suggestObjectPlacementPrompt',
   input: {schema: SuggestObjectPlacementInputSchema},
   output: {schema: SuggestObjectPlacementOutputSchema},
-  prompt: `You are an AI assistant that suggests optimal placements for objects on a floor plan.
+  prompt: `You are an expert AI interior designer for restaurants. Your task is to suggest optimal placements for objects like tables within a given floor plan.
 
-  You are given a floor plan image and the type of object to place. You should analyze the floor plan and suggest placements that are practical, aesthetically pleasing, and maximize space utilization.
+You must analyze the provided floor plan image, considering factors like walkways, entrances, exits, and potential high-traffic areas. The placements should ensure comfortable customer flow, maximize seating capacity without feeling cramped, and create an aesthetically pleasing layout.
 
-  Here are some example layouts, if provided:
-  {{#each exampleLayouts}}
-  {{media url=this}}
-  {{/each}}
+Floor plan to analyze:
+{{media url=floorPlanDataUri}}
 
-  Floor plan:
-  {{media url=floorPlanDataUri}}
+Object type to place: {{{objectType}}}
 
-  Object type: {{{objectType}}}
-
-  Provide the suggestions as a JSON array of objects, where each object has x, y, and confidence fields.
+Based on your analysis, provide a list of suggested placements. Each suggestion must include x and y coordinates (as percentages of the total width and height) and a confidence score indicating how certain you are about the placement.
 `,
 });
 

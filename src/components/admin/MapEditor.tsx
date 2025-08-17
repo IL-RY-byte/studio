@@ -150,7 +150,7 @@ export default function MapEditor() {
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           className={cn(
-            "relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors",
+            "relative w-full h-full min-h-[400px] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors",
             floorPlan ? 'border-primary/20' : 'border-muted-foreground/30'
           )}
         >

@@ -80,9 +80,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-            <div className="p-4 bg-background border-b sticky top-0">
-                <SidebarTrigger />
-            </div>
             {children}
         </SidebarInset>
       </div>

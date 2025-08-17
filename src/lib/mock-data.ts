@@ -3,6 +3,7 @@ import type { Location, Booking } from './types';
 export const restaurantLocation: Location = {
   id: 'restaurant-1',
   name: 'The Gourmet Place',
+  description: 'Experience the finest dining in a cozy and elegant atmosphere. Perfect for romantic dinners and special occasions.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
   objects: [
     {
@@ -92,6 +93,7 @@ export const restaurantLocation: Location = {
 export const beachClubLocation: Location = {
   id: 'beach-club-1',
   name: 'Sunset Beach Club',
+  description: 'Relax by the sea with our premium sunbeds, refreshing cocktails, and live DJ sets.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
   objects: [
     {
@@ -136,6 +138,7 @@ export const beachClubLocation: Location = {
 export const coworkingLocation: Location = {
   id: 'coworking-1',
   name: 'Productivity Hub',
+  description: 'A modern co-working space with high-speed internet, meeting rooms, and unlimited coffee.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
   objects: [
     {

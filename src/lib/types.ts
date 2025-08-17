@@ -15,6 +15,7 @@ export type BookableObject = {
 export type Location = {
   id: string;
   name: string;
+  description?: string;
   floorPlanUrl: string;
   objects: BookableObject[];
 };

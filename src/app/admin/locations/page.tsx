@@ -36,16 +36,18 @@ export default function LocationsPage() {
                         <CardContent>
                             <p className="text-sm text-muted-foreground">{location.objects.length} objects</p>
                         </CardContent>
-                        <CardFooter className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" asChild>
+                        <CardFooter className="flex justify-between gap-2">
+                             <Button variant="outline" size="sm" asChild>
                                 <Link href="/admin/editor">
                                     <Edit className="mr-2 h-4 w-4" />
-                                    Edit
+                                    Edit Map
                                 </Link>
                             </Button>
-                            <Button variant="destructive" size="sm" disabled>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                            <Button size="sm" asChild>
+                                <Link href={`/admin/locations/${location.id}`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Details
+                                </Link>
                             </Button>
                         </CardFooter>
                     </Card>

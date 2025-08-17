@@ -5,6 +5,18 @@ export const restaurantLocation: Location = {
   name: 'The Gourmet Place',
   description: 'Experience the finest dining in a cozy and elegant atmosphere. Perfect for romantic dinners and special occasions.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
+  address: '123 Fine Dining Lane, Gourmet City, 12345',
+  phone: '+1 (555) 123-4567',
+  email: 'reservations@thegourmetplace.com',
+  website: 'https://thegourmetplace.com',
+  cuisine: 'Modern European',
+  specials: ['Truffle Risotto', 'Seared Scallops', 'Chocolate Lava Cake'],
+  amenities: ['Valet Parking', 'Private Rooms', 'Wi-Fi', 'Card Accepted'],
+  workingHours: [
+    { days: 'Monday - Friday', hours: '18:00 - 23:00' },
+    { days: 'Saturday', hours: '17:00 - 00:00' },
+    { days: 'Sunday', hours: 'Closed', isClosed: true },
+  ],
   objects: [
     {
       id: 'table-1',
@@ -95,6 +107,16 @@ export const beachClubLocation: Location = {
   name: 'Sunset Beach Club',
   description: 'Relax by the sea with our premium sunbeds, refreshing cocktails, and live DJ sets.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
+  address: '456 Ocean Drive, Sunny Beach, 67890',
+  phone: '+1 (555) 987-6543',
+  email: 'info@sunsetbeach.com',
+  website: 'https://sunsetbeach.com',
+  cuisine: 'Mediterranean Grill',
+  specials: ['Grilled Octopus', 'Watermelon Feta Salad', 'Sunset Mojito'],
+  amenities: ['Beach Access', 'Live DJ', 'Cabanas', 'Towel Service'],
+  workingHours: [
+    { days: 'Daily', hours: '11:00 - 22:00' },
+  ],
   objects: [
     {
       id: 'sunbed-1',
@@ -140,6 +162,16 @@ export const coworkingLocation: Location = {
   name: 'Productivity Hub',
   description: 'A modern co-working space with high-speed internet, meeting rooms, and unlimited coffee.',
   floorPlanUrl: 'https://placehold.co/1200x800.png',
+  address: '789 Tech Avenue, Innovation City, 54321',
+  phone: '+1 (555) 246-8135',
+  email: 'contact@produhub.com',
+  website: 'https://produhub.com',
+  cuisine: 'Cafe & Snacks',
+  specials: ['Artisanal Coffee', 'Fresh Pastries', 'Healthy Lunch Bowls'],
+  amenities: ['High-Speed Wi-Fi', 'Meeting Rooms', 'Phone Booths', '24/7 Access'],
+  workingHours: [
+    { days: '24/7 for Members', hours: '' },
+  ],
   objects: [
     {
       id: 'workspace-1',

@@ -5,6 +5,9 @@ import React, { useMemo } from 'react';
 import type { Location } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { Badge } from './ui/badge';
+import { Clock, Coffee, Mail, MapPin, Phone, Wifi } from 'lucide-react';
+import { Separator } from './ui/separator';
 
 interface LiveAnalyticsProps {
   location: Location;
@@ -33,7 +36,53 @@ export default function LiveAnalytics({ location }: LiveAnalyticsProps) {
           <CardTitle className="font-headline text-2xl">{location.name}</CardTitle>
           <CardDescription>{location.description || 'Welcome to our venue. Click any available item on the map to make a booking.'}</CardDescription>
         </CardHeader>
+        <CardContent className="text-sm space-y-2">
+            {location.address && <div className="flex items-start gap-2"><MapPin className="text-muted-foreground mt-1" /><span>{location.address}</span></div>}
+            {location.phone && <div className="flex items-center gap-2"><Phone className="text-muted-foreground" /><span>{location.phone}</span></div>}
+            {location.email && <div className="flex items-center gap-2"><Mail className="text-muted-foreground" /><span>{location.email}</span></div>}
+        </CardContent>
       </Card>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Cuisine & Specials</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Coffee className="text-muted-foreground" />
+            <span className="font-semibold">{location.cuisine}</span>
+          </div>
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
+            {location.specials?.map((special, i) => <li key={i}>{special}</li>)}
+          </ul>
+        </CardContent>
+      </Card>
+      
+       <Card>
+        <CardHeader>
+          <CardTitle>Amenities</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+            {location.amenities?.map((amenity, i) => (
+                <Badge key={i} variant="outline">{amenity}</Badge>
+            ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Working Hours</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+           {location.workingHours?.map((wh, i) => (
+             <div key={i} className={`flex justify-between items-center ${wh.isClosed ? 'text-muted-foreground' : ''}`}>
+               <span>{wh.days}</span>
+               <span>{wh.isClosed ? 'Closed' : wh.hours}</span>
+             </div>
+           ))}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Live Status</CardTitle>
@@ -75,4 +124,3 @@ export default function LiveAnalytics({ location }: LiveAnalyticsProps) {
     </div>
   );
 }
-

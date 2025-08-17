@@ -18,6 +18,18 @@ export type Location = {
   description?: string;
   floorPlanUrl: string;
   objects: BookableObject[];
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  cuisine?: string;
+  specials?: string[];
+  amenities?: string[];
+  workingHours?: {
+    days: string;
+    hours: string;
+    isClosed?: boolean;
+  }[];
 };
 
 export type Booking = {

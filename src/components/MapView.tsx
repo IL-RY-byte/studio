@@ -7,6 +7,7 @@ import InteractiveMap from './InteractiveMap';
 import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
 import { Skeleton } from './ui/skeleton';
 import { useSearchParams } from 'next/navigation';
+import LiveAnalytics from './LiveAnalytics';
 
 
 const defaultLocations: Record<string, Location> = {
@@ -69,5 +70,14 @@ export default function MapView() {
     );
   }
 
-  return <InteractiveMap location={location} />;
+  return (
+    <div className="flex h-[calc(100vh-57px)]">
+      <div className="flex-1 relative">
+        <InteractiveMap location={location} />
+      </div>
+      <div className="w-full max-w-sm border-l bg-muted/20 p-4 overflow-y-auto">
+        <LiveAnalytics location={location} />
+      </div>
+    </div>
+  );
 }

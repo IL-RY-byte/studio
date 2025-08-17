@@ -22,7 +22,7 @@ export default function PaymentPage() {
                     </CardContent>
                     <CardFooter>
                          <Button asChild className="w-full">
-                            <Link href="/admin/bookings">
+                            <Link href="/profile">
                                 <CheckCircle className="mr-2" />
                                 Simulate Payment & View Bookings
                             </Link>

@@ -5,11 +5,12 @@ import type { BookableObject, ObjectType, Location } from '@/lib/types';
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon } from '../icons';
+import EditObjectDialog from './EditObjectDialog';
 
 const ObjectIcons: Record<ObjectType, React.ElementType> = {
   sunbed: SunbedIcon,
@@ -33,6 +34,8 @@ export default function MapEditor() {
   const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
   const [objects, setObjects] = useState<BookableObject[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -43,7 +46,6 @@ export default function MapEditor() {
         const parsedData: Location = JSON.parse(savedData);
         setFloorPlan(parsedData.floorPlanUrl);
         setObjects(parsedData.objects);
-        // We don't save the File object, but we need a placeholder for the URI for the assistant
         if(parsedData.floorPlanUrl){
             fetch(parsedData.floorPlanUrl)
                 .then(res => res.blob())
@@ -92,12 +94,12 @@ export default function MapEditor() {
       name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${objects.filter(o => o.type === type).length + 1}`,
       type: type,
       description: `A new ${type}.`,
-      price: 0,
+      price: 25,
       position: { x, y },
       status: 'Free',
     };
     setObjects((prev) => [...prev, newObject]);
-    setSuggestions([]); // Clear suggestions after manual placement
+    setSuggestions([]);
   };
 
   const handleClear = () => {
@@ -107,7 +109,7 @@ export default function MapEditor() {
   };
   
   const handleAcceptSuggestion = (suggestion: Suggestion) => {
-    const objectType = 'sunbed'; // This should be dynamic based on what was requested
+    const objectType = 'sunbed'; 
     const newObject: BookableObject = {
       id: `${objectType}-${Date.now()}`,
       name: `${objectType.charAt(0).toUpperCase() + objectType.slice(1)} ${objects.filter(o => o.type === objectType).length + 1}`,
@@ -141,80 +143,100 @@ export default function MapEditor() {
     }
   };
 
+  const handleObjectClick = (obj: BookableObject) => {
+    setSelectedObject(obj);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateObject = (updatedObject: BookableObject) => {
+    setObjects(objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj));
+    toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
-      <div className="flex flex-col gap-4">
-        <div 
-          ref={mapContainerRef}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          className={cn(
-            "relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors",
-            floorPlan ? 'border-primary/20' : 'border-muted-foreground/30'
-          )}
-        >
-          {floorPlan ? (
-            <>
-              <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2" />
-              {objects.map((obj) => {
-                const Icon = ObjectIcons[obj.type] || TableIcon;
-                return (
-                  <div
-                    key={obj.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-move"
-                    style={{ left: `${obj.position.x}%`, top: `${obj.position.y}%` }}
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
+        <div className="flex flex-col gap-4">
+          <div 
+            ref={mapContainerRef}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors border-primary/20"
+          >
+            {floorPlan ? (
+              <>
+                <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2" />
+                {objects.map((obj) => {
+                  const Icon = ObjectIcons[obj.type] || TableIcon;
+                  return (
+                    <button
+                      key={obj.id}
+                      onClick={() => handleObjectClick(obj)}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-pointer group"
+                      style={{ left: `${obj.position.x}%`, top: `${obj.position.y}%` }}
+                      aria-label={`Edit ${obj.name}`}
+                    >
+                      <Icon className="w-6 h-6 text-foreground transition-transform group-hover:scale-125" />
+                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        ${obj.price}
+                      </div>
+                    </button>
+                  );
+                })}
+                {suggestions.map((s, i) => (
+                  <button
+                      key={i}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/30 backdrop-blur-sm shadow-md ring-2 ring-primary animate-pulse flex items-center justify-center"
+                      style={{ left: `${s.x}%`, top: `${s.y}%` }}
+                      onClick={() => handleAcceptSuggestion(s)}
+                      title={`Accept suggestion (Confidence: ${Math.round(s.confidence * 100)}%)`}
                   >
-                    <Icon className="w-6 h-6 text-foreground" />
-                  </div>
-                );
-              })}
-              {suggestions.map((s, i) => (
-                <button
-                    key={i}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/30 backdrop-blur-sm shadow-md ring-2 ring-primary animate-pulse flex items-center justify-center"
-                    style={{ left: `${s.x}%`, top: `${s.y}%` }}
-                    onClick={() => handleAcceptSuggestion(s)}
-                    title={`Accept suggestion (Confidence: ${Math.round(s.confidence * 100)}%)`}
-                >
-                    <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
-                </button>
-              ))}
-            </>
-          ) : (
-            <div className="text-center text-muted-foreground">
-              <UploadCloud className="mx-auto h-12 w-12" />
-              <p className="mt-2">Upload a floor plan to begin</p>
-              <p className="text-xs">PNG, JPG, or SVG up to 5MB</p>
-            </div>
-          )}
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground">
+                <UploadCloud className="mx-auto h-12 w-12" />
+                <p className="mt-2">Upload a floor plan to begin</p>
+                <p className="text-xs">PNG, JPG, or SVG up to 5MB</p>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+              <Button asChild variant="outline">
+                  <label htmlFor="floor-plan-upload" className="cursor-pointer">
+                      <UploadCloud className="mr-2 h-4 w-4" />
+                      {floorPlan ? 'Change Plan' : 'Upload Plan'}
+                  </label>
+              </Button>
+              <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+              <Button onClick={handleSaveMap} disabled={!floorPlan}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Map
+              </Button>
+              <Button variant="destructive" onClick={handleClear} disabled={objects.length === 0 && suggestions.length === 0}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear All
+              </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-            <Button asChild variant="outline">
-                <label htmlFor="floor-plan-upload" className="cursor-pointer">
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    {floorPlan ? 'Change Plan' : 'Upload Plan'}
-                </label>
-            </Button>
-            <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-            <Button onClick={handleSaveMap} disabled={!floorPlan}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Map
-            </Button>
-            <Button variant="destructive" onClick={handleClear} disabled={objects.length === 0 && suggestions.length === 0}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear All
-            </Button>
-        </div>
-      </div>
 
-      <div className="flex flex-col gap-6">
-        <ObjectPalette />
-        <PlacementAssistant 
-          floorPlanFile={floorPlanFile}
-          onSuggestions={setSuggestions} 
-        />
+        <div className="flex flex-col gap-6">
+          <ObjectPalette />
+          <PlacementAssistant 
+            floorPlanFile={floorPlanFile}
+            onSuggestions={setSuggestions} 
+          />
+        </div>
       </div>
-    </div>
+      
+      <EditObjectDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        object={selectedObject}
+        onSave={handleUpdateObject}
+      />
+    </>
   );
 }

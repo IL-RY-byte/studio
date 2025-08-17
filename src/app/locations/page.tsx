@@ -50,11 +50,11 @@ export default function LocationsPage() {
                                     <CardHeader className="p-0">
                                         <div className="aspect-video relative">
                                             <Image
-                                                src={location.floorPlanUrl || 'https://placehold.co/400x300.png'}
-                                                alt={`${location.name} Floor Plan`}
+                                                src={location.coverImageUrl || 'https://placehold.co/400x300.png'}
+                                                alt={`Photo of ${location.name}`}
                                                 layout="fill"
                                                 objectFit="cover"
-                                                data-ai-hint="venue floor plan"
+                                                data-ai-hint="restaurant interior"
                                                 className="bg-muted"
                                             />
                                         </div>

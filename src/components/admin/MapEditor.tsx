@@ -314,7 +314,7 @@ export default function MapEditor() {
     };
     const updatedLocation = {
         ...activeLocation,
-        floors: [...activeLocation.floors, newFloor]
+        floors: [...(activeLocation.floors || []), newFloor]
     };
     updateActiveLocationAndSave(updatedLocation);
     setActiveFloor(newFloor);
@@ -324,7 +324,7 @@ export default function MapEditor() {
   }
 
   const handleDeleteFloor = () => {
-    if (!activeLocation || !activeFloor || activeLocation.floors.length <= 1) {
+    if (!activeLocation || !activeFloor || !activeLocation.floors || activeLocation.floors.length <= 1) {
         toast({variant: 'destructive', title: 'Cannot Delete', description: 'You must have at least one floor.'});
         return;
     };

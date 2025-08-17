@@ -31,18 +31,37 @@ export default function EditLocationPage() {
     const id = params.id as string;
 
     useEffect(() => {
-        if (id && allLocations[id]) {
-            setLocation(allLocations[id]);
-        } else {
-            toast({ variant: 'destructive', title: 'Location not found!' });
-            router.push('/admin/locations');
-        }
+        const fetchLocation = () => {
+            const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+            const allVenues = [...locationsFromStorage, restaurantLocation, beachClubLocation, coworkingLocation];
+            const foundLocation = allVenues.find(l => l.id === id);
+
+            if (foundLocation) {
+                setLocation(foundLocation);
+            } else if (id && allLocations[id]) {
+                setLocation(allLocations[id]);
+            } else {
+                toast({ variant: 'destructive', title: 'Location not found!' });
+                router.push('/admin/locations');
+            }
+        };
+        fetchLocation();
     }, [id, router, toast]);
 
     const handleSave = async () => {
         setIsSaving(true);
         // Simulate API call to save location data
         await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        const updatedLocations = locationsFromStorage.map((loc: Location) => 
+            loc.id === id ? location : loc
+        );
+        if (!locationsFromStorage.find((loc: Location) => loc.id === id)) {
+            updatedLocations.push(location);
+        }
+        localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
+        
         setIsSaving(false);
         toast({ title: 'Location Updated', description: `${location?.name} has been successfully saved.` });
     };
@@ -51,6 +70,15 @@ export default function EditLocationPage() {
         const { name, value } = e.target;
         setLocation(prev => prev ? { ...prev, [name]: value } as Location : null);
     };
+    
+    const handleDelete = () => {
+        if(!location) return;
+        const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        const updatedLocations = locationsFromStorage.filter((loc: Location) => loc.id !== location.id);
+        localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
+        toast({ title: 'Location Deleted', description: `${location.name} has been removed.` });
+        router.push('/admin/locations');
+    }
 
     if (!location) {
         return (
@@ -144,7 +172,7 @@ export default function EditLocationPage() {
                         <CardContent className="space-y-4">
                              <div className="aspect-video relative">
                                 <Image
-                                    src={location.floorPlanUrl}
+                                    src={location.floorPlanUrl || 'https://placehold.co/1200x800.png'}
                                     alt={`${location.name} Cover Image`}
                                     layout="fill"
                                     objectFit="cover"
@@ -194,7 +222,7 @@ export default function EditLocationPage() {
                              <CardTitle className="text-red-500">Danger Zone</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Button variant="destructive" className="w-full">
+                             <Button variant="destructive" className="w-full" onClick={handleDelete}>
                                 <Trash2 className="mr-2" />
                                 Delete Location
                             </Button>

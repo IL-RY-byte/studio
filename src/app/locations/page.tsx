@@ -1,3 +1,7 @@
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -7,9 +11,27 @@ import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/Header";
 
-const locations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
+const defaultLocations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
 
 export default function LocationsPage() {
+    const [locations, setLocations] = useState<Location[]>([]);
+
+    useEffect(() => {
+        // On the client-side, merge default locations with locations from local storage
+        const storedLocations = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        
+        // Simple merge and dedupe logic
+        const allLocations = [...defaultLocations, ...storedLocations];
+        const uniqueLocations = allLocations.reduce((acc, current) => {
+            if (!acc.find((item) => item.id === current.id)) {
+                acc.push(current);
+            }
+            return acc;
+        }, [] as Location[]);
+        
+        setLocations(uniqueLocations);
+    }, []);
+
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
@@ -30,11 +52,12 @@ export default function LocationsPage() {
                                     <CardHeader className="p-0">
                                         <div className="aspect-video relative">
                                             <Image
-                                                src={location.floorPlanUrl}
+                                                src={location.floorPlanUrl || 'https://placehold.co/400x300.png'}
                                                 alt={`${location.name} Floor Plan`}
                                                 layout="fill"
                                                 objectFit="cover"
                                                 data-ai-hint="venue floor plan"
+                                                className="bg-muted"
                                             />
                                         </div>
                                     </CardHeader>

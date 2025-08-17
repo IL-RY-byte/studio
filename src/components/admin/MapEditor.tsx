@@ -90,7 +90,7 @@ export default function MapEditor() {
             const currentFloor = dataToLoad.floors[0];
             setActiveFloor(currentFloor);
 
-            if(currentFloor.floorPlanUrl){
+            if(currentFloor && currentFloor.floorPlanUrl){
                 fetch(currentFloor.floorPlanUrl)
                     .then(res => res.blob())
                     .then(blob => {
@@ -272,7 +272,7 @@ export default function MapEditor() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-             {activeLocation && activeLocation.floors.length > 1 && (
+             {activeLocation && activeLocation.floors && activeLocation.floors.length > 1 && (
                 <Select value={activeFloor?.id} onValueChange={(id) => setActiveFloor(activeLocation.floors.find(f => f.id === id) || null)}>
                     <SelectTrigger className="w-[280px]">
                         <SelectValue placeholder="Select a floor" />

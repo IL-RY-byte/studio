@@ -10,9 +10,10 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { BotMessageSquare, LayoutGrid, Users, BarChart, Compass } from 'lucide-react';
+import { BotMessageSquare, LayoutGrid, Users, BarChart, Compass, User as UserIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
@@ -65,6 +66,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
+          <SidebarFooter>
+             <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/admin/profile'}>
+                        <Link href="/admin/profile">
+                            <UserIcon />
+                            Profile
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+             </SidebarMenu>
+          </SidebarFooter>
         </Sidebar>
         <SidebarInset>
             <div className="p-4 bg-background border-b sticky top-0">

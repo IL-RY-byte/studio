@@ -4,21 +4,69 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Upload, X } from 'lucide-react';
+import { ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface LocationImageGalleryProps {
   coverImage?: string;
   gallery?: string[];
+  locationId: string;
+  onUpdate: (field: 'coverImageUrl' | 'gallery', value: string | string[]) => void;
 }
 
 export default function LocationImageGallery({
   coverImage: initialCoverImage,
   gallery: initialGallery = [],
+  locationId,
+  onUpdate,
 }: LocationImageGalleryProps) {
-  const [coverImage, setCoverImage] = useState(initialCoverImage || 'https://placehold.co/1200x800.png');
+  const [coverImage, setCoverImage] = useState(initialCoverImage);
   const [gallery, setGallery] = useState(initialGallery);
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileUpload = async (file: File, isCover: boolean) => {
+    setIsUploading(true);
+    toast({ title: 'Uploading image...' });
+    try {
+      const storageRef = ref(storage, `locations/${locationId}/gallery/${Date.now()}-${file.name}`);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+
+      if (isCover) {
+        setCoverImage(downloadURL);
+        onUpdate('coverImageUrl', downloadURL);
+      } else {
+        const newGallery = [...gallery, downloadURL];
+        setGallery(newGallery);
+        onUpdate('gallery', newGallery);
+      }
+
+      toast({ title: 'Image uploaded successfully!' });
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      toast({ variant: 'destructive', title: 'Upload failed', description: 'Could not upload image.' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isCover: boolean) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file, isCover);
+    }
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    const newGallery = gallery.filter((_, i) => i !== index);
+    setGallery(newGallery);
+    onUpdate('gallery', newGallery);
+  };
 
   return (
     <Card>
@@ -26,21 +74,37 @@ export default function LocationImageGallery({
         <CardTitle>Image Gallery</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="aspect-video relative rounded-md overflow-hidden border">
-          <Image
-            src={coverImage}
-            alt="Cover Image"
-            layout="fill"
-            objectFit="cover"
-            className="bg-muted"
-            data-ai-hint="restaurant interior"
-          />
-           <div className="absolute top-2 right-2 flex gap-2">
-             <Button size="icon" variant="secondary" className="h-8 w-8">
+        <div className="aspect-video relative rounded-md overflow-hidden border bg-muted">
+          {coverImage && (
+            <Image
+              src={coverImage}
+              alt="Cover Image"
+              layout="fill"
+              objectFit="cover"
+              className="bg-muted"
+              data-ai-hint="restaurant interior"
+            />
+          )}
+          <div className="absolute top-2 right-2 flex gap-2">
+            <Button asChild size="icon" variant="secondary" className="h-8 w-8">
+              <label htmlFor="cover-upload" className="cursor-pointer">
                 <ImageIcon />
                 <span className="sr-only">Change cover image</span>
-             </Button>
-           </div>
+              </label>
+            </Button>
+            <input
+              id="cover-upload"
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, true)}
+            />
+          </div>
+           {isUploading && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            )}
         </div>
 
         {gallery.length > 0 && (
@@ -53,10 +117,18 @@ export default function LocationImageGallery({
                   layout="fill"
                   objectFit="cover"
                   className="bg-muted cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setCoverImage(img)}
+                  onClick={() => {
+                    setCoverImage(img);
+                    onUpdate('coverImageUrl', img);
+                  }}
                   data-ai-hint="restaurant food"
                 />
-                 <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-6 w-6 opacity-70 hover:opacity-100">
+                 <Button
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-70 hover:opacity-100"
+                  onClick={() => handleRemoveGalleryImage(index)}
+                  >
                     <X className="h-4 w-4" />
                     <span className="sr-only">Remove image</span>
                 </Button>
@@ -65,10 +137,19 @@ export default function LocationImageGallery({
           </div>
         )}
 
-        <Button variant="outline" className="w-full">
-          <Upload className="mr-2" />
-          Upload Images
+        <Button asChild variant="outline" className="w-full" disabled={isUploading}>
+           <label htmlFor="gallery-upload" className="cursor-pointer">
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2" />}
+              Upload Image
+            </label>
         </Button>
+         <input
+              id="gallery-upload"
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, false)}
+            />
       </CardContent>
     </Card>
   );

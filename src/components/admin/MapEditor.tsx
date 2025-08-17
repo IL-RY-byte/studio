@@ -7,7 +7,7 @@ import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save, Edit, PlusCircle } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 const allLocations: Record<string, Location> = {
@@ -81,6 +83,7 @@ export default function MapEditor() {
   const [activeLocation, setActiveLocation] = useState<Location | null>(null);
   const searchParams = useSearchParams();
   const locationId = searchParams.get('locationId');
+  const [isUploading, setIsUploading] = useState(false);
 
 
   useEffect(() => {
@@ -105,15 +108,6 @@ export default function MapEditor() {
         if (dataToLoad.floors && dataToLoad.floors.length > 0) {
             const currentFloor = dataToLoad.floors[0];
             setActiveFloor(currentFloor);
-
-            if(currentFloor && currentFloor.floorPlanUrl){
-                fetch(currentFloor.floorPlanUrl)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        const file = new File([blob], `${dataToLoad.id}-plan.png`, { type: blob.type });
-                        setFloorPlanFile(file);
-                    });
-            }
         } else {
             setActiveFloor(null);
         }
@@ -140,30 +134,39 @@ export default function MapEditor() {
   useEffect(() => {
     // When activeFloor changes, update floorPlanFile if needed
     if (activeFloor?.floorPlanUrl) {
-      fetch(activeFloor.floorPlanUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], `${activeFloor.id}-plan.png`, { type: blob.type });
-          setFloorPlanFile(file);
-        });
+      // No need to fetch and create a File object anymore, as we'll be using the URL directly
+      setFloorPlanFile(null); // Clear any old file object
     } else {
       setFloorPlanFile(null);
     }
   }, [activeFloor]);
 
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && activeFloor) {
-      setFloorPlanFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const newFloorPlanUrl = event.target?.result as string;
-        const updatedFloor = { ...activeFloor, floorPlanUrl: newFloorPlanUrl, objects: [] };
-        setActiveFloor(updatedFloor);
-        setSuggestions([]);
-      };
-      reader.readAsDataURL(file);
+    if (file && activeFloor && activeLocation) {
+        setIsUploading(true);
+        toast({ title: 'Uploading...', description: 'Your floor plan is being uploaded.' });
+        try {
+            const storageRef = ref(storage, `floor-plans/${activeLocation.id}/${activeFloor.id}/${file.name}`);
+            const uploadResult = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(uploadResult.ref);
+
+            const updatedFloor = { ...activeFloor, floorPlanUrl: downloadURL, objects: [] };
+            setActiveFloor(updatedFloor);
+            setSuggestions([]);
+
+            const updatedFloors = activeLocation.floors.map(f => f.id === updatedFloor.id ? updatedFloor : f);
+            handleSaveMap(updatedFloors);
+
+            toast({ title: 'Upload Successful!', description: 'Your new floor plan is now active.' });
+
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the floor plan.' });
+        } finally {
+            setIsUploading(false);
+        }
     }
   };
 
@@ -242,12 +245,12 @@ export default function MapEditor() {
   };
 
 
-  const handleSaveMap = () => {
+  const handleSaveMap = (floors?: Floor[]) => {
     if (!activeFloor || !activeLocation) {
       toast({ variant: 'destructive', title: 'Cannot Save', description: 'Please upload a floor plan first.' });
       return;
     }
-    const updatedFloors = activeLocation.floors.map(f => f.id === activeFloor.id ? activeFloor : f);
+    const updatedFloors = floors || activeLocation.floors.map(f => f.id === activeFloor.id ? activeFloor : f);
     const mapData: Location = {
       ...activeLocation,
       floors: updatedFloors
@@ -441,16 +444,21 @@ export default function MapEditor() {
                     <Trash2 className="h-8 w-8 text-destructive" />
                 </div>
             )}
+             {isUploading && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            )}
           </div>
           <div className="flex gap-2">
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" disabled={isUploading}>
                   <label htmlFor="floor-plan-upload" className="cursor-pointer">
-                      <UploadCloud className="mr-2 h-4 w-4" />
+                      {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                       {activeFloor?.floorPlanUrl ? 'Change Plan' : 'Upload Plan'}
                   </label>
               </Button>
               <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-              <Button onClick={handleSaveMap} disabled={!activeFloor?.floorPlanUrl}>
+              <Button onClick={() => handleSaveMap()} disabled={!activeFloor?.floorPlanUrl}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
@@ -466,6 +474,7 @@ export default function MapEditor() {
           <PlacementAssistant 
             floorPlanFile={floorPlanFile}
             onSuggestions={setSuggestions} 
+            disabled={!activeFloor?.floorPlanUrl}
           />
         </div>
       </div>

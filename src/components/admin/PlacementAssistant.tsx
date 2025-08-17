@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,14 +16,29 @@ import Image from 'next/image';
 interface PlacementAssistantProps {
   floorPlanFile: File | null;
   onSuggestions: (suggestions: any[]) => void;
+  disabled?: boolean;
 }
 
-export default function PlacementAssistant({ floorPlanFile, onSuggestions }: PlacementAssistantProps) {
+export default function PlacementAssistant({ floorPlanFile, onSuggestions, disabled }: PlacementAssistantProps) {
   const [objectType, setObjectType] = useState<ObjectType>('table');
   const [exampleLayouts, setExampleLayouts] = useState<string[]>([]);
   const [exampleFiles, setExampleFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [floorPlanDataUri, setFloorPlanDataUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (floorPlanFile) {
+        const reader = new FileReader();
+        reader.readAsDataURL(floorPlanFile);
+        reader.onload = (event) => {
+            setFloorPlanDataUri(event.target?.result as string);
+        };
+    } else {
+        setFloorPlanDataUri(null);
+    }
+  }, [floorPlanFile]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -48,7 +64,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
   }
 
   const handleGetSuggestions = async () => {
-    if (!floorPlanFile) {
+    if (!floorPlanDataUri) {
       toast({
         variant: "destructive",
         title: "No Floor Plan",
@@ -59,26 +75,17 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
 
     setIsLoading(true);
 
-    const reader = new FileReader();
-    reader.readAsDataURL(floorPlanFile);
-    reader.onload = async (event) => {
-        const floorPlanDataUri = event.target?.result as string;
-        const result = await getPlacementSuggestions({ floorPlanDataUri, objectType, exampleLayouts });
-        
-        setIsLoading(false);
+    const result = await getPlacementSuggestions({ floorPlanDataUri, objectType, exampleLayouts });
+    
+    setIsLoading(false);
 
-        if ('error' in result) {
-            toast({ variant: "destructive", title: "AI Assistant Error", description: result.error });
-        } else if (result && result.length > 0) {
-            onSuggestions(result);
-            toast({ title: "Suggestions Ready", description: `${result.length} new placements suggested by AI.` });
-        } else {
-            toast({ title: "No suggestions found", description: "The AI assistant could not find any suitable placements." });
-        }
-    };
-    reader.onerror = () => {
-        setIsLoading(false);
-        toast({ variant: 'destructive', title: 'Error reading file' });
+    if ('error' in result) {
+        toast({ variant: "destructive", title: "AI Assistant Error", description: result.error });
+    } else if (result && result.length > 0) {
+        onSuggestions(result);
+        toast({ title: "Suggestions Ready", description: `${result.length} new placements suggested by AI.` });
+    } else {
+        toast({ title: "No suggestions found", description: "The AI assistant could not find any suitable placements." });
     }
   };
 
@@ -94,7 +101,7 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
       <CardContent className="space-y-4">
         <div>
           <Label>Object Type</Label>
-          <Select value={objectType} onValueChange={(value) => setObjectType(value as ObjectType)}>
+          <Select value={objectType} onValueChange={(value) => setObjectType(value as ObjectType)} disabled={disabled}>
             <SelectTrigger>
               <SelectValue placeholder="Select an object" />
             </SelectTrigger>
@@ -122,17 +129,17 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
             ))}
           </div>
            {exampleLayouts.length < 3 && (
-            <Button asChild variant="outline" className="w-full">
-              <label htmlFor="example-upload" className="cursor-pointer">
+            <Button asChild variant="outline" className="w-full" disabled={disabled}>
+              <label htmlFor="example-upload" className={cn("cursor-pointer", disabled && "cursor-not-allowed")}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Examples
               </label>
             </Button>
            )}
-          <input id="example-upload" type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
+          <input id="example-upload" type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} disabled={disabled} />
         </div>
 
-        <Button onClick={handleGetSuggestions} disabled={isLoading || !floorPlanFile} className="w-full">
+        <Button onClick={handleGetSuggestions} disabled={isLoading || disabled} className="w-full">
           {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

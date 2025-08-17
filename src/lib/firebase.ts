@@ -1,11 +1,12 @@
 
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   projectId: "planwise-prmae",
   appId: "1:199510036537:web:312d3238ff2d471546bde8",
-  storageBucket: "planwise-prmae.firebasestorage.app",
+  storageBucket: "planwise-prmae.appspot.com",
   apiKey: "AIzaSyDYVkM0CQDGNPeNAq7_ib9hg-LSvN9GyRs",
   authDomain: "planwise-prmae.firebaseapp.com",
   measurementId: "G-Y31PNM33C6",
@@ -14,11 +15,9 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
-let app;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-}
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-export { app, auth };
+export { app, auth, storage };

@@ -49,7 +49,7 @@ export default function EditLocationPage() {
                  try {
                     const parsedLayout = JSON.parse(mapDataFromStorage);
                     if (parsedLayout.id === id) {
-                        foundLocation = parsedLayout;
+                        foundLocation = {...foundLocation, ...parsedLayout};
                     }
                 } catch (error) {
                     console.error("Failed to parse saved map data.", error);
@@ -57,7 +57,6 @@ export default function EditLocationPage() {
             }
 
             if (foundLocation) {
-                 // Smartly set cover image if not already set
                 if (!foundLocation.coverImageUrl && foundLocation.floors && foundLocation.floors.length > 0 && foundLocation.floors[0].floorPlanUrl) {
                     foundLocation.coverImageUrl = foundLocation.floors[0].floorPlanUrl;
                 }
@@ -70,47 +69,50 @@ export default function EditLocationPage() {
         fetchLocation();
     }, [id, router, toast]);
 
-    const handleSave = async () => {
+    const handleSave = async (updatedLocationData?: Partial<Location>) => {
         if (!location) return;
+        
+        let dataToUpdate = { ...location, ...updatedLocationData };
+
         setIsSaving(true);
         
-        // This combines the location details with the map editor data
-        const mapDataKey = `planwise-map-data-${location.id}`;
-        const mapDataFromStorage = localStorage.getItem(mapDataKey);
-        let finalDataToSave = { ...location };
-
-        if (mapDataFromStorage) {
-            try {
-                const parsedMapData = JSON.parse(mapDataFromStorage);
-                // Ensure floors from map editor are preserved
-                finalDataToSave.floors = parsedMapData.floors; 
-            } catch (error) {
-                console.error("Could not merge map data", error);
-            }
-        }
+        const mapDataKey = `planwise-map-data-${dataToUpdate.id}`;
         
         // Save to the main 'planwise-locations' list which is used for the locations page
         const locationsFromStorage: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         let updatedLocations = locationsFromStorage.filter(loc => !allDefaultLocations.some(def => def.id === loc.id));
         const existingIndex = updatedLocations.findIndex((loc) => loc.id === id);
+        
         if (existingIndex > -1) {
             updatedLocations[existingIndex] = {
                 ...updatedLocations[existingIndex],
-                ...finalDataToSave,
+                ...dataToUpdate,
             };
         } else {
-            updatedLocations.push(finalDataToSave);
+            updatedLocations.push(dataToUpdate);
         }
         localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
         
         // Also update the dedicated key for the map editor to have the latest details
-        localStorage.setItem(mapDataKey, JSON.stringify(finalDataToSave));
+        localStorage.setItem(mapDataKey, JSON.stringify(dataToUpdate));
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setLocation(dataToUpdate);
+
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         setIsSaving(false);
-        toast({ title: 'Location Updated', description: `${location?.name} has been successfully saved.` });
+        if (updatedLocationData) { // only show toast for explicit saves, not image uploads
+             toast({ title: 'Location Updated', description: `${dataToUpdate?.name} has been successfully saved.` });
+        }
     };
+    
+    const handleImageUpdate = (field: 'coverImageUrl' | 'gallery', value: string | string[]) => {
+        if (location) {
+            const updatedLocation = { ...location, [field]: value };
+            handleSave(updatedLocation);
+        }
+    };
+
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -143,7 +145,7 @@ export default function EditLocationPage() {
                 </Button>
                 <h1 className="font-semibold text-2xl md:text-3xl font-headline">Edit Location</h1>
                 <div className="ml-auto flex gap-2">
-                    <Button onClick={handleSave} disabled={isSaving}>
+                    <Button onClick={() => handleSave(location)} disabled={isSaving}>
                         {isSaving ? <Save className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                         Save Changes
                     </Button>
@@ -206,15 +208,17 @@ export default function EditLocationPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Popular Dishes / Special Offers</Label>
-                                <Textarea id="specials" name="specials" placeholder="- Margherita Pizza&#10;- Carbonara Pasta&#10;- Tiramisu" value={location.specials?.join('\n') || ''} onChange={(e) => setLocation(prev => prev ? { ...prev, specials: e.target.value.split('\n') } : null)} />
+                                <Textarea id="specials" name="specials" placeholder="- Margherita Pizza&#10;- Carbonara Pasta&#10;- Tiramisu" value={location.specials?.join('\\n') || ''} onChange={(e) => setLocation(prev => prev ? { ...prev, specials: e.target.value.split('\\n') } : null)} />
                             </div>
                         </CardContent>
                     </Card>
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <LocationImageGallery 
+                        locationId={location.id}
                         coverImage={location.coverImageUrl}
                         gallery={location.gallery}
+                        onUpdate={handleImageUpdate}
                     />
                     <Card>
                         <CardHeader>

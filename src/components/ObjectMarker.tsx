@@ -3,7 +3,7 @@
 import type { FC } from 'react';
 import type { BookableObject } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon } from './icons';
+import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon, Box } from './icons';
 
 interface ObjectMarkerProps {
   object: BookableObject;
@@ -26,7 +26,7 @@ const ObjectIcons: Record<BookableObject['type'], React.ElementType> = {
 
 
 const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
-  const Icon = ObjectIcons[object.type] || TableIcon;
+  const Icon = ObjectIcons[object.type] || Box;
   const isClickable = object.status !== 'Occupied';
 
   return (

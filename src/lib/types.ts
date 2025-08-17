@@ -1,6 +1,6 @@
 export type ObjectStatus = 'Free' | 'Reserved' | 'Occupied';
 
-export type ObjectType = 'sunbed' | 'table' | 'workspace' | 'boat' | 'room';
+export type ObjectType = 'sunbed' | 'table' | 'workspace' | 'boat' | 'room' | string;
 
 export type BookableObject = {
   id: string;
@@ -27,3 +27,9 @@ export type Booking = {
     bookingDate: string;
     status: 'Confirmed' | 'Cancelled';
 }
+
+export type PaletteItem = {
+  type: ObjectType;
+  name: string;
+  icon: React.ElementType;
+};

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { BookableObject, ObjectType, Location } from '@/lib/types';
+import type { BookableObject, ObjectType, Location, PaletteItem } from '@/lib/types';
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
@@ -9,16 +9,21 @@ import { UploadCloud, Trash2, Save, Edit } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon } from '../icons';
+import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon, Box } from '../icons';
 import EditObjectDialog from './EditObjectDialog';
 
-const ObjectIcons: Record<ObjectType, React.ElementType> = {
-  sunbed: SunbedIcon,
-  table: TableIcon,
-  boat: BoatIcon,
-  workspace: WorkspaceIcon,
-  room: RoomIcon,
-};
+const defaultPaletteItems: PaletteItem[] = [
+  { type: 'table', name: 'Table', icon: TableIcon },
+  { type: 'sunbed', name: 'Sunbed', icon: SunbedIcon },
+  { type: 'workspace', name: 'Workspace', icon: WorkspaceIcon },
+  { type: 'boat', name: 'Boat/Jet Ski', icon: BoatIcon },
+  { type: 'room', name: 'Room/House', icon: RoomIcon },
+];
+
+const getObjectIcon = (type: ObjectType, palette: PaletteItem[]): React.ElementType => {
+    const item = palette.find(p => p.type === type);
+    return item?.icon || Box;
+}
 
 type Suggestion = {
     x: number;
@@ -39,6 +44,7 @@ export default function MapEditor() {
   const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [paletteItems, setPaletteItems] = useState<PaletteItem[]>(defaultPaletteItems);
 
   useEffect(() => {
     const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -58,6 +64,10 @@ export default function MapEditor() {
       } catch (error) {
         console.error("Failed to parse saved map data:", error);
       }
+    }
+    const customItems = localStorage.getItem('planwise-custom-items');
+    if (customItems) {
+      setPaletteItems(prev => [...prev, ...JSON.parse(customItems).map((item: any) => ({...item, icon: Box}))]);
     }
   }, []);
 
@@ -183,6 +193,18 @@ export default function MapEditor() {
     setObjects(objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj));
     toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
   };
+  
+  const handleAddCustomItem = (item: Omit<PaletteItem, 'icon'>) => {
+    const newItem = { ...item, icon: Box, type: item.name.toLowerCase().replace(/\s/g, '-') };
+    const updatedItems = [...paletteItems, newItem];
+    setPaletteItems(updatedItems);
+    
+    const currentCustomItems = JSON.parse(localStorage.getItem('planwise-custom-items') || '[]');
+    localStorage.setItem('planwise-custom-items', JSON.stringify([...currentCustomItems, {type: newItem.type, name: newItem.name}]));
+
+    toast({ title: 'Custom Item Added', description: `${item.name} has been added to the palette.` });
+  };
+
 
   return (
     <>
@@ -198,7 +220,7 @@ export default function MapEditor() {
               <>
                 <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
                 {objects.map((obj) => {
-                  const Icon = ObjectIcons[obj.type] || TableIcon;
+                  const Icon = getObjectIcon(obj.type, paletteItems);
                   return (
                     <button
                       key={obj.id}
@@ -269,7 +291,7 @@ export default function MapEditor() {
         </div>
 
         <div className="flex flex-col gap-6">
-          <ObjectPalette />
+          <ObjectPalette paletteItems={paletteItems} onAddCustomItem={handleAddCustomItem} />
           <PlacementAssistant 
             floorPlanFile={floorPlanFile}
             onSuggestions={setSuggestions} 

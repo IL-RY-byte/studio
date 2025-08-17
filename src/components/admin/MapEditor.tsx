@@ -109,7 +109,7 @@ export default function MapEditor() {
   };
   
   const handleAcceptSuggestion = (suggestion: Suggestion) => {
-    const objectType = 'sunbed'; 
+    const objectType = 'table'; 
     const newObject: BookableObject = {
       id: `${objectType}-${Date.now()}`,
       name: `${objectType.charAt(0).toUpperCase() + objectType.slice(1)} ${objects.filter(o => o.type === objectType).length + 1}`,

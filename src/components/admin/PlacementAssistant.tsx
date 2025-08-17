@@ -15,7 +15,7 @@ interface PlacementAssistantProps {
 }
 
 export default function PlacementAssistant({ floorPlanFile, onSuggestions }: PlacementAssistantProps) {
-  const [objectType, setObjectType] = useState<ObjectType>('sunbed');
+  const [objectType, setObjectType] = useState<ObjectType>('table');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -71,8 +71,8 @@ export default function PlacementAssistant({ floorPlanFile, onSuggestions }: Pla
               <SelectValue placeholder="Select an object" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="sunbed">Sunbed</SelectItem>
               <SelectItem value="table">Table</SelectItem>
+              <SelectItem value="sunbed">Sunbed</SelectItem>
               <SelectItem value="workspace">Workspace</SelectItem>
             </SelectContent>
           </Select>

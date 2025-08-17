@@ -8,6 +8,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { Badge } from './ui/badge';
 import { Clock, Coffee, Mail, MapPin, Phone, Wifi } from 'lucide-react';
 import { Separator } from './ui/separator';
+import Image from 'next/image';
 
 interface LiveAnalyticsProps {
   location: Location;
@@ -40,6 +41,40 @@ export default function LiveAnalytics({ location }: LiveAnalyticsProps) {
             {location.address && <div className="flex items-start gap-2"><MapPin className="text-muted-foreground mt-1" /><span>{location.address}</span></div>}
             {location.phone && <div className="flex items-center gap-2"><Phone className="text-muted-foreground" /><span>{location.phone}</span></div>}
             {location.email && <div className="flex items-center gap-2"><Mail className="text-muted-foreground" /><span>{location.email}</span></div>}
+        </CardContent>
+      </Card>
+      
+       <Card>
+        <CardHeader>
+          <CardTitle>Gallery</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+            <div className="aspect-video relative rounded-md overflow-hidden border">
+                 <Image
+                    src={location.coverImageUrl || 'https://placehold.co/1200x800.png'}
+                    alt="Cover Image"
+                    layout="fill"
+                    objectFit="cover"
+                    className="bg-muted"
+                    data-ai-hint="restaurant interior"
+                />
+            </div>
+            {(location.gallery && location.gallery.length > 0) && (
+                <div className="grid grid-cols-4 gap-2">
+                    {location.gallery.map((img, index) => (
+                    <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                        <Image
+                        src={img}
+                        alt={`Gallery image ${index + 1}`}
+                        layout="fill"
+                        objectFit="cover"
+                        className="bg-muted"
+                        data-ai-hint="restaurant food"
+                        />
+                    </div>
+                    ))}
+                </div>
+            )}
         </CardContent>
       </Card>
 

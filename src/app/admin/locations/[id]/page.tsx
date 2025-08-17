@@ -15,12 +15,7 @@ import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/
 import type { Location } from '@/lib/types';
 import Image from "next/image";
 
-const allLocations: Record<string, Location> = {
-  'restaurant-1': restaurantLocation,
-  'beach-club-1': beachClubLocation,
-  'coworking-1': coworkingLocation,
-};
-
+const allDefaultLocations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
 
 export default function EditLocationPage() {
     const [location, setLocation] = useState<Location | null>(null);
@@ -33,13 +28,11 @@ export default function EditLocationPage() {
     useEffect(() => {
         const fetchLocation = () => {
             const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
-            const allVenues = [...locationsFromStorage, restaurantLocation, beachClubLocation, coworkingLocation];
+            const allVenues = [...locationsFromStorage, ...allDefaultLocations];
             const foundLocation = allVenues.find(l => l.id === id);
 
             if (foundLocation) {
                 setLocation(foundLocation);
-            } else if (id && allLocations[id]) {
-                setLocation(allLocations[id]);
             } else {
                 toast({ variant: 'destructive', title: 'Location not found!' });
                 router.push('/admin/locations');
@@ -49,17 +42,22 @@ export default function EditLocationPage() {
     }, [id, router, toast]);
 
     const handleSave = async () => {
+        if (!location) return;
         setIsSaving(true);
         // Simulate API call to save location data
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        const locationsFromStorage = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
-        const updatedLocations = locationsFromStorage.map((loc: Location) => 
-            loc.id === id ? location : loc
-        );
-        if (!locationsFromStorage.find((loc: Location) => loc.id === id)) {
+        const locationsFromStorage: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        let updatedLocations = locationsFromStorage.filter(loc => !allDefaultLocations.some(def => def.id === loc.id));
+        
+        const existingIndex = updatedLocations.findIndex((loc) => loc.id === id);
+
+        if (existingIndex > -1) {
+            updatedLocations[existingIndex] = location;
+        } else {
             updatedLocations.push(location);
         }
+
         localStorage.setItem('planwise-locations', JSON.stringify(updatedLocations));
         
         setIsSaving(false);

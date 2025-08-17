@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Compass, Home } from "lucide-react";
+import { PlusCircle, Edit, Home } from "lucide-react";
 import { beachClubLocation, restaurantLocation, coworkingLocation } from "@/lib/mock-data";
 import type { Location } from "@/lib/types";
 import Link from "next/link";
@@ -32,8 +32,15 @@ export default function LocationsPage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const storedLocations = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
-        setLocations([...defaultLocations, ...storedLocations]);
+        const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        const allLocations = [...defaultLocations, ...storedLocations];
+        const uniqueLocations = allLocations.reduce((acc, current) => {
+            if (!acc.find((item) => item.id === current.id)) {
+                acc.push(current);
+            }
+            return acc;
+        }, [] as Location[]);
+        setLocations(uniqueLocations);
     }, []);
 
     const handleAddLocation = () => {
@@ -49,9 +56,12 @@ export default function LocationsPage() {
             objects: [],
         };
         
-        const updatedLocations = [...locations, newLocation];
-        setLocations(updatedLocations);
-        localStorage.setItem('planwise-locations', JSON.stringify([...updatedLocations.filter(l => l.id.startsWith('custom'))]));
+        const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+        const updatedStoredLocations = [...storedLocations, newLocation];
+        localStorage.setItem('planwise-locations', JSON.stringify(updatedStoredLocations));
+
+        const updatedLocationsForState = [...locations, newLocation];
+        setLocations(updatedLocationsForState);
 
         toast({ title: 'Location Created!', description: `"${newLocationName}" has been added.` });
         setIsDialogOpen(false);

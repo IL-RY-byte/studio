@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Skeleton } from './ui/skeleton';
 import { useSearchParams } from 'next/navigation';
 
 
-const allLocations: Record<string, Location> = {
+const defaultLocations: Record<string, Location> = {
   'restaurant-1': restaurantLocation,
   'beach-club-1': beachClubLocation,
   'coworking-1': coworkingLocation,
@@ -21,31 +22,38 @@ export default function MapView() {
   const locationId = searchParams.get('location');
 
   useEffect(() => {
+    // This logic ensures that both default and user-created locations are available.
+    const customLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
+    const mapEditorKey = locationId ? `planwise-map-data-${locationId}` : `planwise-map-data-restaurant-1`;
+    const savedMapLayout = localStorage.getItem(mapEditorKey);
+
     let dataToLoad: Location | null = null;
     
-    if (locationId && allLocations[locationId]) {
-      dataToLoad = allLocations[locationId];
-      const localStorageKey = `planwise-map-data-${locationId}`;
-      const savedData = localStorage.getItem(localStorageKey);
-       if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData);
-          if (parsedData?.id === locationId) { 
-              dataToLoad = parsedData;
-          }
-        } catch (error) {
-          console.error("Failed to parse saved map data.", error);
-        }
+    // Determine the base location data to use
+    if (locationId) {
+      // Try finding in custom locations first
+      dataToLoad = customLocations.find(l => l.id === locationId) || null;
+      // If not found in custom, try default
+      if (!dataToLoad) {
+        dataToLoad = defaultLocations[locationId] || null;
       }
-    } else {
-       // Fallback to default restaurant if no ID or invalid ID
-       dataToLoad = restaurantLocation;
-       const savedData = localStorage.getItem(`planwise-map-data-${restaurantLocation.id}`);
-       if (savedData) {
-         try {
-           dataToLoad = JSON.parse(savedData);
-         } catch (e) { /* ignore */ }
-       }
+    }
+    
+    // If still no location, fall back to the default restaurant
+    if (!dataToLoad) {
+      dataToLoad = restaurantLocation;
+    }
+
+    // If there's a saved layout in the map editor, merge it with the location data
+    if (savedMapLayout) {
+      try {
+        const parsedLayout = JSON.parse(savedMapLayout);
+        if (parsedLayout.id === (locationId || restaurantLocation.id)) {
+          dataToLoad = parsedLayout;
+        }
+      } catch (error) {
+        console.error("Failed to parse saved map data.", error);
+      }
     }
 
     setLocation(dataToLoad);

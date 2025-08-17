@@ -17,11 +17,9 @@ export default function LocationsPage() {
     const [locations, setLocations] = useState<Location[]>([]);
 
     useEffect(() => {
-        // On the client-side, merge default locations with locations from local storage
-        const storedLocations = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
-        
-        // Simple merge and dedupe logic
+        const storedLocations: Location[] = JSON.parse(localStorage.getItem('planwise-locations') || '[]');
         const allLocations = [...defaultLocations, ...storedLocations];
+        
         const uniqueLocations = allLocations.reduce((acc, current) => {
             if (!acc.find((item) => item.id === current.id)) {
                 acc.push(current);

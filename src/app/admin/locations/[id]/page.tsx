@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Image as ImageIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Image as ImageIcon, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
 import type { Location } from '@/lib/types';

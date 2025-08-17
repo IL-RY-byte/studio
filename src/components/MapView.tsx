@@ -7,9 +7,8 @@ import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/
 import { Skeleton } from './ui/skeleton';
 import { useSearchParams } from 'next/navigation';
 
-const LOCAL_STORAGE_KEY = 'planwise-map-data';
 
-const locations: Record<string, Location> = {
+const allLocations: Record<string, Location> = {
   'restaurant-1': restaurantLocation,
   'beach-club-1': beachClubLocation,
   'coworking-1': coworkingLocation,
@@ -22,28 +21,35 @@ export default function MapView() {
   const locationId = searchParams.get('location');
 
   useEffect(() => {
-    if (locationId && locations[locationId]) {
-      setLocation(locations[locationId]);
-      return;
-    }
-
-    // Fallback to locally saved map if no (or invalid) id is provided
-    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        if (parsedData?.id) { // basic validation
-            setLocation(parsedData);
-        } else {
-            setLocation(restaurantLocation);
+    let dataToLoad: Location | null = null;
+    
+    if (locationId && allLocations[locationId]) {
+      dataToLoad = allLocations[locationId];
+      const localStorageKey = `planwise-map-data-${locationId}`;
+      const savedData = localStorage.getItem(localStorageKey);
+       if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData?.id === locationId) { 
+              dataToLoad = parsedData;
+          }
+        } catch (error) {
+          console.error("Failed to parse saved map data.", error);
         }
-      } catch (error) {
-        console.error("Failed to parse saved map data, falling back to mock data.", error);
-        setLocation(restaurantLocation);
       }
     } else {
-      setLocation(restaurantLocation);
+       // Fallback to default restaurant if no ID or invalid ID
+       dataToLoad = restaurantLocation;
+       const savedData = localStorage.getItem(`planwise-map-data-${restaurantLocation.id}`);
+       if (savedData) {
+         try {
+           dataToLoad = JSON.parse(savedData);
+         } catch (e) { /* ignore */ }
+       }
     }
+
+    setLocation(dataToLoad);
+
   }, [locationId]);
 
   if (!location) {

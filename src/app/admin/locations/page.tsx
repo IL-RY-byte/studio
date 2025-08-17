@@ -38,7 +38,7 @@ export default function LocationsPage() {
                         </CardContent>
                         <CardFooter className="flex justify-between gap-2">
                              <Button variant="outline" size="sm" asChild>
-                                <Link href="/admin/editor">
+                                <Link href={`/admin/editor?locationId=${location.id}`}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Map
                                 </Link>

@@ -1,4 +1,5 @@
 import MapEditor from '@/components/admin/MapEditor';
+import { Suspense } from 'react';
 
 export default function EditorPage() {
   return (
@@ -9,7 +10,9 @@ export default function EditorPage() {
       <p className="text-muted-foreground mb-6">
         Design your venue's layout. Upload a floor plan, then drag and drop tables, and other objects to create your interactive map. Use the AI assistant for placement suggestions.
       </p>
-      <MapEditor />
+      <Suspense fallback={<div>Loading...</div>}>
+        <MapEditor />
+      </Suspense>
     </main>
   );
 }

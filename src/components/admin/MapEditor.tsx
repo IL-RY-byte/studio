@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -11,6 +12,15 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { SunbedIcon, TableIcon, BoatIcon, WorkspaceIcon, RoomIcon, Box } from '../icons';
 import EditObjectDialog from './EditObjectDialog';
+import { useSearchParams } from 'next/navigation';
+import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
+
+const allLocations: Record<string, Location> = {
+  'restaurant-1': restaurantLocation,
+  'beach-club-1': beachClubLocation,
+  'coworking-1': coworkingLocation,
+};
+
 
 const defaultPaletteItems: PaletteItem[] = [
   { type: 'table', name: 'Table', icon: TableIcon },
@@ -31,7 +41,7 @@ type Suggestion = {
     confidence: number;
 };
 
-const LOCAL_STORAGE_KEY = 'planwise-map-data';
+const getLocalStorageKey = (locationId: string) => `planwise-map-data-${locationId}`;
 
 
 export default function MapEditor() {
@@ -45,31 +55,55 @@ export default function MapEditor() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [paletteItems, setPaletteItems] = useState<PaletteItem[]>(defaultPaletteItems);
+  const [activeLocation, setActiveLocation] = useState<Location | null>(null);
+  const searchParams = useSearchParams();
+  const locationId = searchParams.get('locationId');
+
 
   useEffect(() => {
-    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsedData: Location = JSON.parse(savedData);
-        setFloorPlan(parsedData.floorPlanUrl);
-        setObjects(parsedData.objects);
-        if(parsedData.floorPlanUrl){
-            fetch(parsedData.floorPlanUrl)
+    const loadMapData = (loc: Location) => {
+        const localStorageKey = getLocalStorageKey(loc.id);
+        const savedData = localStorage.getItem(localStorageKey);
+        let dataToLoad = loc;
+
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                if(parsedData.id === loc.id){ // check if saved data matches location
+                    dataToLoad = parsedData;
+                    toast({title: "Loaded Saved Progress", description: `Resumed editing for ${loc.name}.`})
+                }
+            } catch (e) {
+                console.error("Failed to parse saved data", e);
+            }
+        }
+        
+        setActiveLocation(dataToLoad);
+        setFloorPlan(dataToLoad.floorPlanUrl);
+        setObjects(dataToLoad.objects);
+
+        if(dataToLoad.floorPlanUrl){
+            fetch(dataToLoad.floorPlanUrl)
                 .then(res => res.blob())
                 .then(blob => {
-                    const file = new File([blob], "saved-plan.png", { type: blob.type });
+                    const file = new File([blob], `${dataToLoad.id}-plan.png`, { type: blob.type });
                     setFloorPlanFile(file);
                 });
         }
-      } catch (error) {
-        console.error("Failed to parse saved map data:", error);
-      }
     }
+
+    if (locationId && allLocations[locationId]) {
+        loadMapData(allLocations[locationId]);
+    } else {
+        // Fallback to a default or show an error/selector
+        loadMapData(restaurantLocation);
+    }
+    
     const customItems = localStorage.getItem('planwise-custom-items');
     if (customItems) {
       setPaletteItems(prev => [...prev, ...JSON.parse(customItems).map((item: any) => ({...item, icon: Box}))]);
     }
-  }, []);
+  }, [locationId, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -145,19 +179,19 @@ export default function MapEditor() {
   };
 
   const handleSaveMap = () => {
-    if (!floorPlan) {
+    if (!floorPlan || !activeLocation) {
       toast({ variant: 'destructive', title: 'Cannot Save', description: 'Please upload a floor plan first.' });
       return;
     }
     const mapData: Location = {
-      id: 'custom-map-1',
-      name: 'My Custom Venue',
+      ...activeLocation,
       floorPlanUrl: floorPlan,
       objects,
     };
+    const localStorageKey = getLocalStorageKey(activeLocation.id);
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mapData));
-      toast({ title: 'Map Saved!', description: 'Your map has been saved locally in your browser.' });
+      localStorage.setItem(localStorageKey, JSON.stringify(mapData));
+      toast({ title: 'Map Saved!', description: `Your map for ${activeLocation.name} has been saved locally.` });
     } catch (error) {
       console.error('Failed to save map:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Could not save the map.' });

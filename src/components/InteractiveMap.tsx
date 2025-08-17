@@ -32,8 +32,8 @@ const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
         src={location.floorPlanUrl}
         alt={`${location.name} Floor Plan`}
         layout="fill"
-        objectFit="cover"
-        className="pointer-events-none"
+        objectFit="contain"
+        className="pointer-events-none p-4"
         data-ai-hint="restaurant floor plan"
       />
       <div className="absolute inset-0">

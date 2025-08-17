@@ -88,3 +88,82 @@ export const restaurantLocation: Location = {
     },
   ],
 };
+
+export const beachClubLocation: Location = {
+  id: 'beach-club-1',
+  name: 'Sunset Beach Club',
+  floorPlanUrl: 'https://placehold.co/1200x800.png',
+  objects: [
+    {
+      id: 'sunbed-1',
+      name: 'Sunbed A1',
+      type: 'sunbed',
+      description: 'Prime front-row sunbed with premium towel service.',
+      price: 25,
+      position: { x: 15, y: 75 },
+      status: 'Free',
+    },
+    {
+      id: 'sunbed-2',
+      name: 'Sunbed A2',
+      type: 'sunbed',
+      description: 'Prime front-row sunbed with premium towel service.',
+      price: 25,
+      position: { x: 20, y: 75 },
+      status: 'Occupied',
+    },
+    {
+      id: 'table-1',
+      name: 'Cabana Table 1',
+      type: 'table',
+      description: 'Large table in a private cabana, perfect for groups.',
+      price: 150,
+      position: { x: 70, y: 25 },
+      status: 'Free',
+    },
+     {
+      id: 'boat-1',
+      name: 'Jet Ski "WaveRider"',
+      type: 'boat',
+      description: 'High-speed jet ski for an adrenaline rush.',
+      price: 90,
+      position: { x: 85, y: 80 },
+      status: 'Free',
+    },
+  ],
+};
+
+export const coworkingLocation: Location = {
+  id: 'coworking-1',
+  name: 'Productivity Hub',
+  floorPlanUrl: 'https://placehold.co/1200x800.png',
+  objects: [
+    {
+      id: 'workspace-1',
+      name: 'Hot Desk 1',
+      type: 'workspace',
+      description: 'Shared desk with access to all amenities.',
+      price: 15,
+      position: { x: 10, y: 20 },
+      status: 'Free',
+    },
+    {
+      id: 'workspace-2',
+      name: 'Dedicated Desk D5',
+      type: 'workspace',
+      description: 'Your own personal desk with lockable storage.',
+      price: 150,
+      position: { x: 40, y: 40 },
+      status: 'Occupied',
+    },
+    {
+      id: 'room-1',
+      name: 'Meeting Room "Apollo"',
+      type: 'room',
+      description: 'Large meeting room for up to 12 people with video conferencing.',
+      price: 75,
+      position: { x: 80, y: 50 },
+      status: 'Reserved',
+    },
+  ],
+};

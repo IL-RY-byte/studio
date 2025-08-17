@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import type { BookableObject, ObjectType } from '@/lib/types';
+import React, { useState, useRef, useEffect } from 'react';
+import type { BookableObject, ObjectType, Location } from '@/lib/types';
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2 } from 'lucide-react';
+import { UploadCloud, Trash2, Save } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,9 @@ type Suggestion = {
     confidence: number;
 };
 
+const LOCAL_STORAGE_KEY = 'planwise-map-data';
+
+
 export default function MapEditor() {
   const [floorPlan, setFloorPlan] = useState<string | null>(null);
   const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
@@ -32,6 +35,28 @@ export default function MapEditor() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsedData: Location = JSON.parse(savedData);
+        setFloorPlan(parsedData.floorPlanUrl);
+        setObjects(parsedData.objects);
+        // We don't save the File object, but we need a placeholder for the URI for the assistant
+        if(parsedData.floorPlanUrl){
+            fetch(parsedData.floorPlanUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], "saved-plan.png", { type: blob.type });
+                    setFloorPlanFile(file);
+                });
+        }
+      } catch (error) {
+        console.error("Failed to parse saved map data:", error);
+      }
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +121,27 @@ export default function MapEditor() {
     setSuggestions((prev) => prev.filter(s => s !== suggestion));
   };
 
+  const handleSaveMap = () => {
+    if (!floorPlan) {
+      toast({ variant: 'destructive', title: 'Cannot Save', description: 'Please upload a floor plan first.' });
+      return;
+    }
+    const mapData: Location = {
+      id: 'custom-map-1',
+      name: 'My Custom Venue',
+      floorPlanUrl: floorPlan,
+      objects,
+    };
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mapData));
+      toast({ title: 'Map Saved!', description: 'Your map has been saved locally in your browser.' });
+    } catch (error) {
+      console.error('Failed to save map:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not save the map.' });
+    }
+  };
+
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 h-full flex-1">
       <div className="flex flex-col gap-4">
@@ -151,6 +197,10 @@ export default function MapEditor() {
                 </label>
             </Button>
             <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+            <Button onClick={handleSaveMap} disabled={!floorPlan}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Map
+            </Button>
             <Button variant="destructive" onClick={handleClear} disabled={objects.length === 0 && suggestions.length === 0}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear All

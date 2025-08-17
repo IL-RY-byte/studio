@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, type FC } from 'react';
+import { useState, type FC, useEffect } from 'react';
 import Image from 'next/image';
 import type { Location, BookableObject } from '@/lib/types';
 import ObjectMarker from './ObjectMarker';
 import BookingSheet from './BookingSheet';
+import { restaurantLocation } from '@/lib/mock-data';
 
 interface InteractiveMapProps {
   location: Location;

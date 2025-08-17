@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, BotMessageSquare, Map } from 'lucide-react';
+import { LayoutGrid, BotMessageSquare, Map, Compass } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -15,6 +15,12 @@ const Header = () => {
             <Link href="/map">
               <Map className="mr-2 h-4 w-4" />
               Demo
+            </Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="#">
+              <Compass className="mr-2 h-4 w-4" />
+              Locations
             </Link>
           </Button>
         </nav>

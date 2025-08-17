@@ -1,6 +1,6 @@
 'use client';
 
-import { type FC, useState } from 'react';
+import { useState, type FC } from 'react';
 import Image from 'next/image';
 import type { Location, BookableObject } from '@/lib/types';
 import ObjectMarker from './ObjectMarker';
@@ -33,7 +33,7 @@ const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
         layout="fill"
         objectFit="cover"
         className="pointer-events-none"
-        data-ai-hint="beach aerial"
+        data-ai-hint="restaurant floor plan"
       />
       <div className="absolute inset-0">
         {location.objects.map((obj) => (

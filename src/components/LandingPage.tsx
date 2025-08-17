@@ -38,7 +38,7 @@ export default function LandingPage() {
               </div>
                <div className="mx-auto flex w-full items-center justify-center lg:order-last">
                 <Image
-                  src="https://placehold.co/600x400.png"
+                  src="https://firebasestorage.googleapis.com/v0/b/planwise-prmae.appspot.com/o/your-image-name.png?alt=media"
                   alt="Interactive Map"
                   width={600}
                   height={400}

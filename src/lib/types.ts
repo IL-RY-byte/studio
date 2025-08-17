@@ -30,6 +30,8 @@ export type Location = {
     hours: string;
     isClosed?: boolean;
   }[];
+  coverImageUrl?: string;
+  gallery?: string[];
 };
 
 export type Booking = {

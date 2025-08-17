@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Image as ImageIcon, PlusCircle, Trash2, Edit } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Save, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
 import type { Location } from '@/lib/types';
-import Image from "next/image";
+import LocationImageGallery from '@/components/admin/LocationImageGallery';
+
 
 const allDefaultLocations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
 
@@ -163,26 +163,10 @@ export default function EditLocationPage() {
                     </Card>
                 </div>
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Cover Image</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                             <div className="aspect-video relative">
-                                <Image
-                                    src={location.floorPlanUrl || 'https://placehold.co/1200x800.png'}
-                                    alt={`${location.name} Cover Image`}
-                                    layout="fill"
-                                    objectFit="cover"
-                                    className="rounded-md"
-                                />
-                            </div>
-                             <Button variant="outline" className="w-full">
-                                <ImageIcon className="mr-2" />
-                                Upload New Image
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <LocationImageGallery 
+                        coverImage={location.coverImageUrl}
+                        gallery={location.gallery}
+                    />
                     <Card>
                         <CardHeader>
                             <CardTitle>Amenities & Services</CardTitle>

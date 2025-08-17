@@ -17,6 +17,13 @@ export const restaurantLocation: Location = {
     { days: 'Saturday', hours: '17:00 - 00:00' },
     { days: 'Sunday', hours: 'Closed', isClosed: true },
   ],
+  coverImageUrl: 'https://placehold.co/1200x800.png',
+  gallery: [
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
+  ],
   objects: [
     {
       id: 'table-1',
@@ -117,6 +124,11 @@ export const beachClubLocation: Location = {
   workingHours: [
     { days: 'Daily', hours: '11:00 - 22:00' },
   ],
+  coverImageUrl: 'https://placehold.co/1200x800.png',
+  gallery: [
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
+  ],
   objects: [
     {
       id: 'sunbed-1',
@@ -171,6 +183,12 @@ export const coworkingLocation: Location = {
   amenities: ['High-Speed Wi-Fi', 'Meeting Rooms', 'Phone Booths', '24/7 Access'],
   workingHours: [
     { days: '24/7 for Members', hours: '' },
+  ],
+  coverImageUrl: 'https://placehold.co/1200x800.png',
+  gallery: [
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
+    'https://placehold.co/600x400.png',
   ],
   objects: [
     {

@@ -36,6 +36,7 @@ export default function MapEditor() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -81,24 +82,34 @@ export default function MapEditor() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!mapContainerRef.current) return;
+    setDraggingObject(null); // Clear dragging state on any drop
 
     const type = e.dataTransfer.getData('objectType') as ObjectType;
-    if (!type) return;
-
+    const existingObjectId = e.dataTransfer.getData('objectId');
     const rect = mapContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    const newObject: BookableObject = {
-      id: `${type}-${Date.now()}`,
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${objects.filter(o => o.type === type).length + 1}`,
-      type: type,
-      description: `A new ${type}.`,
-      price: 25,
-      position: { x, y },
-      status: 'Free',
-    };
-    setObjects((prev) => [...prev, newObject]);
+
+    if (existingObjectId) {
+      // Move existing object
+      setObjects((prev) =>
+        prev.map((obj) =>
+          obj.id === existingObjectId ? { ...obj, position: { x, y } } : obj
+        )
+      );
+    } else if (type) {
+      // Add new object from palette
+      const newObject: BookableObject = {
+        id: `${type}-${Date.now()}`,
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${objects.filter(o => o.type === type).length + 1}`,
+        type: type,
+        description: `A new ${type}.`,
+        price: 25,
+        position: { x, y },
+        status: 'Free',
+      };
+      setObjects((prev) => [...prev, newObject]);
+    }
     setSuggestions([]);
   };
 
@@ -142,6 +153,26 @@ export default function MapEditor() {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not save the map.' });
     }
   };
+  
+  const handleObjectDragStart = (e: React.DragEvent<HTMLButtonElement>, obj: BookableObject) => {
+    e.dataTransfer.setData('objectId', obj.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingObject(obj);
+  };
+  
+  const handleObjectDragEnd = () => {
+    setDraggingObject(null);
+  };
+  
+  const handleTrashDrop = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const objectId = e.dataTransfer.getData('objectId');
+      if (objectId) {
+          setObjects(prev => prev.filter(obj => obj.id !== objectId));
+          toast({ title: 'Object Deleted', description: 'The object has been removed from the map.' });
+      }
+      setDraggingObject(null);
+  };
 
   const handleObjectClick = (obj: BookableObject) => {
     setSelectedObject(obj);
@@ -165,14 +196,20 @@ export default function MapEditor() {
           >
             {floorPlan ? (
               <>
-                <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2" />
+                <Image src={floorPlan} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
                 {objects.map((obj) => {
                   const Icon = ObjectIcons[obj.type] || TableIcon;
                   return (
                     <button
                       key={obj.id}
+                      draggable
+                      onDragStart={(e) => handleObjectDragStart(e, obj)}
+                      onDragEnd={handleObjectDragEnd}
                       onClick={() => handleObjectClick(obj)}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-pointer group"
+                      className={cn(
+                        "absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group",
+                         draggingObject?.id === obj.id && "opacity-50"
+                      )}
                       style={{ left: `${obj.position.x}%`, top: `${obj.position.y}%` }}
                       aria-label={`Edit ${obj.name}`}
                     >
@@ -201,6 +238,15 @@ export default function MapEditor() {
                 <p className="mt-2">Upload a floor plan to begin</p>
                 <p className="text-xs">PNG, JPG, or SVG up to 5MB</p>
               </div>
+            )}
+             {draggingObject && (
+                <div 
+                    onDrop={handleTrashDrop}
+                    onDragOver={handleDragOver}
+                    className="absolute bottom-4 right-4 z-10 p-4 rounded-full bg-destructive/20 border-2 border-dashed border-destructive/50"
+                >
+                    <Trash2 className="h-8 w-8 text-destructive" />
+                </div>
             )}
           </div>
           <div className="flex gap-2">

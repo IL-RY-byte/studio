@@ -30,9 +30,9 @@ body {
     --radius: 0.5rem;
 
     /* Custom status colors */
-    --status-free: 142 76% 36%; /* Green */
-    --status-reserved: 45 93% 47%; /* Yellow */
-    --status-occupied: 0 84% 60%; /* Red */
+    --status-free: 120 60% 40%; /* A clear, available green */
+    --status-reserved: 45 93% 47%; /* A noticeable yellow/orange */
+    --status-occupied: 0 84% 60%; /* A distinct red */
 
     --chart-1: hsl(var(--status-occupied));
     --chart-2: hsl(var(--status-free));
@@ -71,7 +71,7 @@ body {
     --input: 275 10% 20%;
     --ring: 275 100% 70%;
 
-    --status-free: 142 71% 45%;
+    --status-free: 120 50% 50%;
     --status-reserved: 45 93% 57%;
     --status-occupied: 0 72% 51%;
 

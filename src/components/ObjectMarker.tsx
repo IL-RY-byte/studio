@@ -38,7 +38,11 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
         statusColors[object.status],
         isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
       )}
-      style={{ left: `${object.position.x}%`, top: `${object.position.y}%` }}
+      style={{ 
+        left: `${object.position.x}%`, 
+        top: `${object.position.y}%`,
+        '--tw-ring-color': `hsl(var(--status-${object.status.toLowerCase()}))`
+      } as React.CSSProperties}
       aria-label={`Select ${object.name}`}
     >
       <Icon className="w-6 h-6 text-foreground" />

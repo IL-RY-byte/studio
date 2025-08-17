@@ -14,6 +14,17 @@ import { ArrowLeft, Save, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { restaurantLocation, beachClubLocation, coworkingLocation } from '@/lib/mock-data';
 import type { Location } from '@/lib/types';
 import LocationImageGallery from '@/components/admin/LocationImageGallery';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 const allDefaultLocations: Location[] = [restaurantLocation, beachClubLocation, coworkingLocation];
@@ -46,6 +57,10 @@ export default function EditLocationPage() {
             }
 
             if (foundLocation) {
+                 // Smartly set cover image if not already set
+                if (!foundLocation.coverImageUrl && foundLocation.floors && foundLocation.floors.length > 0 && foundLocation.floors[0].floorPlanUrl) {
+                    foundLocation.coverImageUrl = foundLocation.floors[0].floorPlanUrl;
+                }
                 setLocation(foundLocation);
             } else {
                 toast({ variant: 'destructive', title: 'Location not found!' });
@@ -265,3 +280,5 @@ export default function EditLocationPage() {
         </main>
     );
 }
+
+    

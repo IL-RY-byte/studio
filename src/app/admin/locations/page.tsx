@@ -42,7 +42,10 @@ export default function LocationsPage() {
                 if (editorData) {
                     try {
                         const parsedData = JSON.parse(editorData);
-                         // Make sure we merge the latest name and other details from the editor
+                        // Smartly set cover image if not already set
+                        if (!parsedData.coverImageUrl && parsedData.floors && parsedData.floors.length > 0 && parsedData.floors[0].floorPlanUrl) {
+                            parsedData.coverImageUrl = parsedData.floors[0].floorPlanUrl;
+                        }
                         acc.push(parsedData);
                     } catch (e) {
                         console.error("failed to parse", e);
@@ -109,7 +112,7 @@ export default function LocationsPage() {
                                 <CardHeader>
                                     <div className="aspect-[4/3] relative mb-4">
                                         <Image
-                                            src={(location.coverImageUrl) || (location.floors && location.floors[0]?.floorPlanUrl) || 'https://placehold.co/400x300.png'}
+                                            src={location.coverImageUrl || (location.floors && location.floors[0]?.floorPlanUrl) || 'https://placehold.co/400x300.png'}
                                             alt={`${location.name} Floor Plan`}
                                             layout="fill"
                                             objectFit="cover"
@@ -180,3 +183,5 @@ export default function LocationsPage() {
         </>
     );
 }
+
+    

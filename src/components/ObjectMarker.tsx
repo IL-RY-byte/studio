@@ -52,7 +52,7 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
       }}
       aria-label={`Select ${object.name}`}
     >
-      <Icon className="w-6 h-6 text-foreground" />
+      <Icon className="w-6 h-6 text-foreground" style={{ color: object.color }} />
     </button>
   );
 };

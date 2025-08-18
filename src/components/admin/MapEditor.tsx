@@ -6,6 +6,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -371,9 +372,14 @@ export default function MapEditor() {
     if (activeFloor) {
         const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
         setActiveFloor({...activeFloor, objects: newObjects});
-        toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
     }
   };
+
+  const handleFinalUpdateObject = (updatedObject: BookableObject) => {
+    handleUpdateObject(updatedObject);
+    toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
+  };
+
    const handleDeleteObject = (objectId: string) => {
     if (activeFloor) {
         const newObjects = activeFloor.objects.filter(obj => obj.id !== objectId);
@@ -669,7 +675,7 @@ export default function MapEditor() {
                             className="w-full h-full flex items-center justify-center"
                             aria-label={`Edit ${obj.name}`}
                             >
-                                <Icon className="w-2/3 h-2/3 text-foreground transition-transform group-hover:scale-125" />
+                                <Icon className="w-2/3 h-2/3 text-foreground transition-transform group-hover:scale-125" style={{ color: obj.color }} />
                                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                                     {obj.name}
                                 </div>
@@ -756,8 +762,9 @@ export default function MapEditor() {
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         object={selectedObject}
-        onSave={handleUpdateObject}
+        onSave={handleFinalUpdateObject}
         onDelete={handleDeleteObject}
+        onLiveUpdate={handleUpdateObject}
       />
       
       <AlertDialog open={isAddFloorOpen} onOpenChange={setIsAddFloorOpen}>

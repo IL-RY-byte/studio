@@ -35,6 +35,7 @@ interface EditObjectDialogProps {
   object: BookableObject | null;
   onSave: (updatedObject: BookableObject) => void;
   onDelete: (objectId: string) => void;
+  onLiveUpdate?: (updatedObject: BookableObject) => void;
 }
 
 const formSchema = z.object({
@@ -53,6 +54,7 @@ export default function EditObjectDialog({
   object,
   onSave,
   onDelete,
+  onLiveUpdate,
 }: EditObjectDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,6 +69,8 @@ export default function EditObjectDialog({
     },
   });
 
+  const watchedValues = form.watch();
+
   useEffect(() => {
     if (object) {
       form.reset({
@@ -79,7 +83,15 @@ export default function EditObjectDialog({
         color: object.color,
       });
     }
-  }, [object, form]);
+  }, [object, form, isOpen]); // re-sync form when dialog opens
+
+  useEffect(() => {
+      if (isOpen && object && onLiveUpdate && form.formState.isDirty) {
+          onLiveUpdate({ ...object, ...watchedValues });
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValues, object, onLiveUpdate, isOpen]);
+
 
   if (!object) return null;
 

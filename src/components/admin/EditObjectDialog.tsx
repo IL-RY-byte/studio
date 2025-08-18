@@ -66,8 +66,8 @@ export default function EditObjectDialog({
         name: object.name,
         description: object.description,
         price: object.price,
-        width: object.width,
-        height: object.height,
+        width: object.width || 5,
+        height: object.height || 5,
       });
     }
   }, [object, form]);

@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -461,8 +462,8 @@ export default function MapEditor() {
                       style={{ 
                           left: `${obj.position.x}%`, 
                           top: `${obj.position.y}%`,
-                          width: `${obj.width}%`,
-                          height: `${obj.height}%`,
+                          width: `${obj.width || 5}%`,
+                          height: `${obj.height || 5}%`,
                       }}
                       aria-label={`Edit ${obj.name}`}
                     >

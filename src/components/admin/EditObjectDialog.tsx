@@ -6,7 +6,6 @@ import type { BookableObject, ObjectStatus } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-
 import {
   Dialog,
   DialogContent,
@@ -14,7 +13,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,12 +26,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 
 interface EditObjectDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   object: BookableObject | null;
   onSave: (updatedObject: BookableObject) => void;
+  onDelete: (objectId: string) => void;
 }
 
 const formSchema = z.object({
@@ -43,6 +44,7 @@ const formSchema = z.object({
   width: z.coerce.number().min(1, { message: 'Width must be at least 1.' }),
   height: z.coerce.number().min(1, { message: 'Height must be at least 1.' }),
   status: z.enum(['Free', 'Reserved', 'Occupied']),
+  color: z.string().optional(),
 });
 
 export default function EditObjectDialog({
@@ -50,6 +52,7 @@ export default function EditObjectDialog({
   onOpenChange,
   object,
   onSave,
+  onDelete,
 }: EditObjectDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,6 +63,7 @@ export default function EditObjectDialog({
       width: 5,
       height: 5,
       status: 'Free',
+      color: '#00ff00',
     },
   });
 
@@ -72,6 +76,7 @@ export default function EditObjectDialog({
         width: object.width || 5,
         height: object.height || 5,
         status: object.status,
+        color: object.color,
       });
     }
   }, [object, form]);
@@ -86,10 +91,15 @@ export default function EditObjectDialog({
     onSave(updatedObject);
     onOpenChange(false);
   };
+  
+  const handleDelete = () => {
+    onDelete(object.id);
+    onOpenChange(false);
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit {object.name}</DialogTitle>
           <DialogDescription>
@@ -176,6 +186,19 @@ export default function EditObjectDialog({
                 )}
               />
             </div>
+             <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status Color</FormLabel>
+                    <FormControl>
+                      <Input type="color" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <FormField
               control={form.control}
               name="description"
@@ -193,13 +216,33 @@ export default function EditObjectDialog({
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit">Save Changes</Button>
+            <DialogFooter className="flex-row justify-between w-full">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button type="button" variant="destructive">
+                            <Trash2 className="mr-2" />
+                            Delete
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this object from the map.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete Object</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <div className="flex gap-2">
+                    <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </Button>
+                    <Button type="submit">Save Changes</Button>
+                </div>
             </DialogFooter>
           </form>
         </Form>

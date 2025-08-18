@@ -5,6 +5,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -348,17 +349,6 @@ export default function MapEditor() {
   const handleObjectDragEnd = () => {
     setDraggingObject(null);
   };
-  
-  const handleTrashDrop = (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const objectId = e.dataTransfer.getData('objectId');
-      if (objectId && activeFloor) {
-          const newObjects = activeFloor.objects.filter(obj => obj.id !== objectId);
-          setActiveFloor({...activeFloor, objects: newObjects});
-          toast({ title: 'Object Deleted', description: 'The object has been removed from the map.' });
-      }
-      setDraggingObject(null);
-  };
 
   const handleObjectClick = (e: React.MouseEvent, obj: BookableObject) => {
     e.stopPropagation(); // Prevent map click from firing
@@ -384,6 +374,14 @@ export default function MapEditor() {
         toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
     }
   };
+   const handleDeleteObject = (objectId: string) => {
+    if (activeFloor) {
+        const newObjects = activeFloor.objects.filter(obj => obj.id !== objectId);
+        setActiveFloor({...activeFloor, objects: newObjects});
+        toast({ title: 'Object Deleted', description: 'The object has been removed from the map.' });
+    }
+  };
+
   
   const handleAddCustomItem = (item: Omit<PaletteItem, 'icon'>) => {
     const newItem = { ...item, icon: Box, type: item.name.toLowerCase().replace(/\s/g, '-') };
@@ -719,15 +717,6 @@ export default function MapEditor() {
                 <span className="p-2 bg-background/80 rounded-md text-xs font-mono">{Math.round(scale * 100)}%</span>
             </div>
 
-             {draggingObject && (
-                <div 
-                    onDrop={handleTrashDrop}
-                    onDragOver={handleDragOver}
-                    className="absolute bottom-4 right-4 z-10 p-4 rounded-full bg-destructive/20 border-2 border-dashed border-destructive/50"
-                >
-                    <Trash2 className="h-8 w-8 text-destructive" />
-                </div>
-            )}
              {isUploading && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -768,6 +757,7 @@ export default function MapEditor() {
         onOpenChange={setIsEditDialogOpen}
         object={selectedObject}
         onSave={handleUpdateObject}
+        onDelete={handleDeleteObject}
       />
       
       <AlertDialog open={isAddFloorOpen} onOpenChange={setIsAddFloorOpen}>

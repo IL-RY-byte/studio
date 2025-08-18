@@ -7,6 +7,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -201,11 +202,17 @@ export default function MapEditor() {
             const downloadURL = await getDownloadURL(uploadResult.ref);
 
             const updatedFloor = { ...activeFloor, floorPlanUrl: downloadURL, objects: [] };
+            
+            const updatedFloors = activeLocation.floors.map(f => f.id === updatedFloor.id ? updatedFloor : f);
+            
+            const updatedLocation = {
+                ...activeLocation,
+                floors: updatedFloors
+            };
+            
+            updateActiveLocationAndSave(updatedLocation);
             setActiveFloor(updatedFloor);
             setSuggestions([]);
-
-            const updatedFloors = activeLocation.floors.map(f => f.id === updatedFloor.id ? updatedFloor : f);
-            handleSaveMap(updatedFloors);
 
             toast({ title: 'Upload Successful!', description: 'Your new floor plan is now active.' });
 
@@ -326,12 +333,12 @@ export default function MapEditor() {
   };
 
 
-  const handleSaveMap = (floors?: Floor[]) => {
+  const handleSaveMap = () => {
     if (!activeFloor || !activeLocation) {
       toast({ variant: 'destructive', title: 'Cannot Save', description: 'Please upload a floor plan first.' });
       return;
     }
-    const updatedFloors = floors || activeLocation.floors.map(f => f.id === activeFloor.id ? activeFloor : f);
+    const updatedFloors = activeLocation.floors.map(f => f.id === activeFloor.id ? activeFloor : f);
     const mapData: Location = {
       ...activeLocation,
       floors: updatedFloors
@@ -737,7 +744,7 @@ export default function MapEditor() {
                   </label>
               </Button>
               <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-              <Button onClick={() => handleSaveMap()} disabled={!activeFloor?.floorPlanUrl}>
+              <Button onClick={handleSaveMap} disabled={!activeFloor?.floorPlanUrl}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
@@ -793,3 +800,4 @@ export default function MapEditor() {
     </>
   );
 }
+

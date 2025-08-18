@@ -8,8 +8,6 @@ import { ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface LocationImageGalleryProps {
   coverImage?: string;
@@ -29,36 +27,34 @@ export default function LocationImageGallery({
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  const handleFileUpload = async (file: File, isCover: boolean) => {
-    setIsUploading(true);
-    toast({ title: 'Uploading image...' });
-    try {
-      const storageRef = ref(storage, `locations/${locationId}/gallery/${Date.now()}-${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
-
-      if (isCover) {
-        setCoverImage(downloadURL);
-        onUpdate('coverImageUrl', downloadURL);
-      } else {
-        const newGallery = [...gallery, downloadURL];
-        setGallery(newGallery);
-        onUpdate('gallery', newGallery);
-      }
-
-      toast({ title: 'Image uploaded successfully!' });
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      toast({ variant: 'destructive', title: 'Upload failed', description: 'Could not upload image.' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isCover: boolean) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileUpload(file, isCover);
+      setIsUploading(true);
+      toast({ title: 'Processing image...' });
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+
+        if (isCover) {
+          setCoverImage(dataUrl);
+          onUpdate('coverImageUrl', dataUrl);
+        } else {
+          const newGallery = [...gallery, dataUrl];
+          setGallery(newGallery);
+          onUpdate('gallery', newGallery);
+        }
+
+        toast({ title: 'Image updated locally!' });
+        setIsUploading(false);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading file:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not process the image.' });
+        setIsUploading(false);
+      }
+      reader.readAsDataURL(file);
     }
   };
 
@@ -98,6 +94,7 @@ export default function LocationImageGallery({
               className="hidden"
               accept="image/*"
               onChange={(e) => handleFileChange(e, true)}
+              disabled={isUploading}
             />
           </div>
            {isUploading && (
@@ -149,6 +146,7 @@ export default function LocationImageGallery({
               className="hidden"
               accept="image/*"
               onChange={(e) => handleFileChange(e, false)}
+              disabled={isUploading}
             />
       </CardContent>
     </Card>

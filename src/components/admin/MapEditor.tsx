@@ -8,6 +8,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -43,8 +44,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 const allLocations: Record<string, Location> = {
@@ -195,16 +194,14 @@ export default function MapEditor() {
     const file = e.target.files?.[0];
     if (file && activeFloor && activeLocation) {
         setIsUploading(true);
-        toast({ title: 'Uploading...', description: 'Your floor plan is being uploaded.' });
-        try {
-            const storageRef = ref(storage, `floor-plans/${activeLocation.id}/${activeFloor.id}/${file.name}`);
-            const uploadResult = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(uploadResult.ref);
+        toast({ title: 'Processing...', description: 'Your floor plan is being processed.' });
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const dataUrl = reader.result as string;
 
-            const updatedFloor = { ...activeFloor, floorPlanUrl: downloadURL, objects: [] };
-            
+            const updatedFloor = { ...activeFloor, floorPlanUrl: dataUrl, objects: [] };
             const updatedFloors = activeLocation.floors.map(f => f.id === updatedFloor.id ? updatedFloor : f);
-            
             const updatedLocation = {
                 ...activeLocation,
                 floors: updatedFloors
@@ -215,13 +212,14 @@ export default function MapEditor() {
             setSuggestions([]);
 
             toast({ title: 'Upload Successful!', description: 'Your new floor plan is now active.' });
-
-        } catch (error) {
-            console.error("Error uploading file:", error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload the floor plan.' });
-        } finally {
+            setIsUploading(false);
+        };
+        reader.onerror = () => {
+            console.error("Error reading file:", reader.error);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not read the file.' });
             setIsUploading(false);
         }
+        reader.readAsDataURL(file);
     }
   };
 
@@ -800,4 +798,3 @@ export default function MapEditor() {
     </>
   );
 }
-

@@ -65,11 +65,9 @@ export default function EditObjectDialog({
       width: 5,
       height: 5,
       status: 'Free',
-      color: '#00ff00',
+      color: '',
     },
   });
-
-  const watchedValues = form.watch();
 
   useEffect(() => {
     if (object) {
@@ -84,13 +82,14 @@ export default function EditObjectDialog({
       });
     }
   }, [object, form, isOpen]);
-
+  
   useEffect(() => {
-    if (isOpen && object && onLiveUpdate && form.formState.isDirty) {
-      const subscription = form.watch((value) => {
-        onLiveUpdate({ ...object, ...value } as BookableObject);
-      });
-      return () => subscription.unsubscribe();
+    if (isOpen && object && onLiveUpdate) {
+        const subscription = form.watch((value) => {
+            const updatedObject = { ...object, ...value, width: Number(value.width) || 0, height: Number(value.height) || 0, price: Number(value.price) || 0 };
+            onLiveUpdate(updatedObject as BookableObject);
+        });
+        return () => subscription.unsubscribe();
     }
   }, [isOpen, object, onLiveUpdate, form]);
 
@@ -242,7 +241,7 @@ export default function EditObjectDialog({
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete this object from the map.
-                        </d:AlertDialogDescription>
+                        </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -263,3 +262,5 @@ export default function EditObjectDialog({
     </Dialog>
   );
 }
+
+    

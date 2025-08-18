@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -9,7 +10,7 @@ import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2, MousePointerClick } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +88,12 @@ const checkCollision = (objA: BookableObject, objB: BookableObject): boolean => 
     );
 };
 
+type ResizingState = {
+    handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    initialObject: BookableObject;
+    initialMousePos: { x: number; y: number };
+}
+
 export default function MapEditor() {
   const [activeFloor, setActiveFloor] = useState<Floor | null>(null);
   const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
@@ -96,6 +103,7 @@ export default function MapEditor() {
   const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
   const [newFloorName, setNewFloorName] = useState('');
   const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
+  const [resizingState, setResizingState] = useState<ResizingState | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [paletteItems, setPaletteItems] = useState<PaletteItem[]>(defaultPaletteItems);
@@ -151,10 +159,8 @@ export default function MapEditor() {
   }, [locationId, toast]);
   
   useEffect(() => {
-    // When activeFloor changes, update floorPlanFile if needed
     if (activeFloor?.floorPlanUrl) {
-      // No need to fetch and create a File object anymore, as we'll be using the URL directly
-      setFloorPlanFile(null); // Clear any old file object
+      setFloorPlanFile(null); 
     } else {
       setFloorPlanFile(null);
     }
@@ -216,7 +222,7 @@ export default function MapEditor() {
         for (const obj of activeFloor.objects) {
             if (obj.id !== existingObjectId && checkCollision(tempObject, obj)) {
                 toast({ variant: 'destructive', title: 'Placement Error', description: 'Objects cannot overlap.' });
-                return; // Abort drop
+                return;
             }
         }
         newObjects = activeFloor.objects.map((obj) =>
@@ -238,7 +244,7 @@ export default function MapEditor() {
         for (const obj of activeFloor.objects) {
             if (checkCollision(tempObject, obj)) {
                 toast({ variant: 'destructive', title: 'Placement Error', description: 'Objects cannot overlap.' });
-                return; // Abort drop
+                return;
             }
         }
       
@@ -316,6 +322,7 @@ export default function MapEditor() {
     e.dataTransfer.setData('objectId', obj.id);
     e.dataTransfer.effectAllowed = 'move';
     setDraggingObject(obj);
+    setSelectedObject(obj);
   };
   
   const handleObjectDragEnd = () => {
@@ -333,10 +340,20 @@ export default function MapEditor() {
       setDraggingObject(null);
   };
 
-  const handleObjectClick = (obj: BookableObject) => {
+  const handleObjectClick = (e: React.MouseEvent, obj: BookableObject) => {
+    e.stopPropagation(); // Prevent map click from firing
+    setSelectedObject(obj);
+  };
+
+  const handleMapClick = () => {
+    setSelectedObject(null); // Deselect object when clicking on the map
+  };
+
+  const handleOpenEditDialog = (obj: BookableObject) => {
     setSelectedObject(obj);
     setIsEditDialogOpen(true);
   };
+
 
   const handleUpdateObject = (updatedObject: BookableObject) => {
     if (activeFloor) {
@@ -394,6 +411,86 @@ export default function MapEditor() {
     toast({title: 'Floor Deleted'});
   }
 
+  // Resizing logic
+    const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>, obj: BookableObject, handle: ResizingState['handle']) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!mapContainerRef.current) return;
+        setResizingState({
+            handle,
+            initialObject: obj,
+            initialMousePos: { x: e.clientX, y: e.clientY },
+        });
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!resizingState || !mapContainerRef.current || !activeFloor) return;
+            
+            const { initialObject, initialMousePos, handle } = resizingState;
+            const mapRect = mapContainerRef.current.getBoundingClientRect();
+
+            const dx = ((e.clientX - initialMousePos.x) / mapRect.width) * 100;
+            const dy = ((e.clientY - initialMousePos.y) / mapRect.height) * 100;
+            
+            let newWidth = initialObject.width;
+            let newHeight = initialObject.height;
+            let newX = initialObject.position.x;
+            let newY = initialObject.position.y;
+            
+            if (handle.includes('right')) {
+                newWidth = Math.max(1, initialObject.width + dx);
+                newX = initialObject.position.x + dx / 2;
+            } else if (handle.includes('left')) {
+                newWidth = Math.max(1, initialObject.width - dx);
+                newX = initialObject.position.x + dx / 2;
+            }
+
+            if (handle.includes('bottom')) {
+                newHeight = Math.max(1, initialObject.height + dy);
+                newY = initialObject.position.y + dy / 2;
+            } else if (handle.includes('top')) {
+                newHeight = Math.max(1, initialObject.height - dy);
+                newY = initialObject.position.y + dy / 2;
+            }
+            
+            const updatedObject = {
+                ...initialObject,
+                width: newWidth,
+                height: newHeight,
+                position: { x: newX, y: newY },
+            };
+
+            // Collision check
+            let collision = false;
+            for (const obj of activeFloor.objects) {
+                if (obj.id !== updatedObject.id && checkCollision(updatedObject, obj)) {
+                    collision = true;
+                    break;
+                }
+            }
+
+            if (!collision) {
+                const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
+                setActiveFloor(prev => prev ? { ...prev, objects: newObjects } : null);
+                setSelectedObject(updatedObject);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setResizingState(null);
+        };
+
+        if (resizingState) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizingState, activeFloor]);
 
   return (
     <>
@@ -441,6 +538,7 @@ export default function MapEditor() {
             ref={mapContainerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
+            onClick={handleMapClick}
             className="relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors border-primary/20"
           >
             {activeFloor?.floorPlanUrl ? (
@@ -448,30 +546,47 @@ export default function MapEditor() {
                 <Image src={activeFloor.floorPlanUrl} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
                 {activeFloor.objects.map((obj) => {
                   const Icon = getObjectIcon(obj.type, paletteItems);
+                  const isSelected = selectedObject?.id === obj.id;
                   return (
-                    <button
+                    <div
                       key={obj.id}
-                      draggable
-                      onDragStart={(e) => handleObjectDragStart(e, obj)}
-                      onDragEnd={handleObjectDragEnd}
-                      onClick={() => handleObjectClick(obj)}
+                      onClick={(e) => handleObjectClick(e, obj)}
                       className={cn(
-                        "absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center",
-                         draggingObject?.id === obj.id && "opacity-50"
+                        "absolute -translate-x-1/2 -translate-y-1/2 bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center rounded-md",
+                         draggingObject?.id === obj.id && "opacity-50",
+                         isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
                       )}
-                      style={{ 
+                       style={{ 
                           left: `${obj.position.x}%`, 
                           top: `${obj.position.y}%`,
                           width: `${obj.width || 5}%`,
                           height: `${obj.height || 5}%`,
                       }}
-                      aria-label={`Edit ${obj.name}`}
                     >
-                      <Icon className="w-6 h-6 text-foreground transition-transform group-hover:scale-125" />
-                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        ${obj.price}
-                      </div>
-                    </button>
+                        <button
+                          draggable
+                          onDragStart={(e) => handleObjectDragStart(e, obj)}
+                          onDragEnd={handleObjectDragEnd}
+                          onDoubleClick={() => handleOpenEditDialog(obj)}
+                          className="w-full h-full flex items-center justify-center"
+                          aria-label={`Edit ${obj.name}`}
+                        >
+                            <Icon className="w-2/3 h-2/3 text-foreground transition-transform group-hover:scale-125" />
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                {obj.name}
+                            </div>
+                        </button>
+
+                         {isSelected && !resizingState && (
+                            <>
+                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-left')} className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
+                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-right')} className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
+                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-left')} className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
+                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-right')} className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
+                                <Button size="icon" variant="secondary" className="absolute -top-3 -right-10 h-7 w-7" onClick={() => handleOpenEditDialog(obj)}><Edit /></Button>
+                            </>
+                         )}
+                    </div>
                   );
                 })}
                 {suggestions.map((s, i) => (

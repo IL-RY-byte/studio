@@ -11,6 +11,8 @@ export type BookableObject = {
   price: number;
   position: { x: number; y: number }; // position in percentage
   status: ObjectStatus;
+  width: number; // percentage of container
+  height: number; // percentage of container
 };
 
 export type Floor = {

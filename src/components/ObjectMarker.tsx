@@ -41,6 +41,8 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
       style={{ 
         left: `${object.position.x}%`, 
         top: `${object.position.y}%`,
+        width: `${object.width}%`,
+        height: `${object.height}%`,
         '--tw-ring-color': `hsl(var(--status-${object.status.toLowerCase()}))`
       } as React.CSSProperties}
       aria-label={`Select ${object.name}`}

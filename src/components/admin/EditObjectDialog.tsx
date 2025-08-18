@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -38,6 +39,8 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   description: z.string().optional(),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
+  width: z.coerce.number().min(1, { message: 'Width must be at least 1.' }),
+  height: z.coerce.number().min(1, { message: 'Height must be at least 1.' }),
 });
 
 export default function EditObjectDialog({
@@ -52,6 +55,8 @@ export default function EditObjectDialog({
       name: '',
       description: '',
       price: 0,
+      width: 5,
+      height: 5,
     },
   });
 
@@ -61,6 +66,8 @@ export default function EditObjectDialog({
         name: object.name,
         description: object.description,
         price: object.price,
+        width: object.width,
+        height: object.height,
       });
     }
   }, [object, form]);
@@ -100,6 +107,34 @@ export default function EditObjectDialog({
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="width"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Width (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="height"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Height (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="price"

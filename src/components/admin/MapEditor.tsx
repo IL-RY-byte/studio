@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -67,6 +68,23 @@ type Suggestion = {
 
 const getLocalStorageKey = (locationId: string) => `planwise-map-data-${locationId}`;
 
+const defaultObjectDimensions: Record<ObjectType, { width: number; height: number }> = {
+    table: { width: 5, height: 5 },
+    sunbed: { width: 8, height: 4 },
+    workspace: { width: 4, height: 4 },
+    boat: { width: 10, height: 5 },
+    room: { width: 10, height: 10 },
+};
+
+const checkCollision = (objA: BookableObject, objB: BookableObject): boolean => {
+    // AABB collision detection
+    return (
+        objA.position.x - objA.width / 2 < objB.position.x + objB.width / 2 &&
+        objA.position.x + objA.width / 2 > objB.position.x - objB.width / 2 &&
+        objA.position.y - objA.height / 2 < objB.position.y + objB.height / 2 &&
+        objA.position.y + objA.height / 2 > objB.position.y - objB.height / 2
+    );
+};
 
 export default function MapEditor() {
   const [activeFloor, setActiveFloor] = useState<Floor | null>(null);
@@ -184,24 +202,56 @@ export default function MapEditor() {
     const rect = mapContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-
+    
+    let tempObject: BookableObject;
     let newObjects: BookableObject[];
 
     if (existingObjectId) {
-      newObjects = activeFloor.objects.map((obj) =>
-        obj.id === existingObjectId ? { ...obj, position: { x, y } } : obj
-      );
+        const originalObject = activeFloor.objects.find(obj => obj.id === existingObjectId);
+        if (!originalObject) return;
+        
+        tempObject = { ...originalObject, position: { x, y } };
+
+        for (const obj of activeFloor.objects) {
+            if (obj.id !== existingObjectId && checkCollision(tempObject, obj)) {
+                toast({ variant: 'destructive', title: 'Placement Error', description: 'Objects cannot overlap.' });
+                return; // Abort drop
+            }
+        }
+        newObjects = activeFloor.objects.map((obj) =>
+            obj.id === existingObjectId ? tempObject : obj
+        );
     } else if (type) {
-      const newObject: BookableObject = {
-        id: `${type}-${Date.now()}`,
-        name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${activeFloor.objects.filter(o => o.type === type).length + 1}`,
-        type: type,
-        description: `A new ${type}.`,
-        price: 25,
-        position: { x, y },
-        status: 'Free',
-      };
-      newObjects = [...activeFloor.objects, newObject];
+        const dimensions = defaultObjectDimensions[type] || { width: 5, height: 5 };
+        tempObject = {
+            id: 'temp',
+            name: '',
+            type: type,
+            description: '',
+            price: 0,
+            position: { x, y },
+            status: 'Free',
+            ...dimensions
+        };
+
+        for (const obj of activeFloor.objects) {
+            if (checkCollision(tempObject, obj)) {
+                toast({ variant: 'destructive', title: 'Placement Error', description: 'Objects cannot overlap.' });
+                return; // Abort drop
+            }
+        }
+      
+        const newObject: BookableObject = {
+            id: `${type}-${Date.now()}`,
+            name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${activeFloor.objects.filter(o => o.type === type).length + 1}`,
+            type: type,
+            description: `A new ${type}.`,
+            price: 25,
+            position: { x, y },
+            status: 'Free',
+            ...dimensions,
+        };
+        newObjects = [...activeFloor.objects, newObject];
     } else {
         return;
     }
@@ -220,7 +270,8 @@ export default function MapEditor() {
   
   const handleAcceptSuggestion = (suggestion: Suggestion) => {
     if (!activeFloor) return;
-    const objectType = 'table'; 
+    const objectType: ObjectType = 'table'; 
+    const dimensions = defaultObjectDimensions[objectType] || { width: 5, height: 5 };
     const newObject: BookableObject = {
       id: `${objectType}-${Date.now()}`,
       name: `${objectType.charAt(0).toUpperCase() + objectType.slice(1)} ${activeFloor.objects.filter(o => o.type === objectType).length + 1}`,
@@ -229,6 +280,7 @@ export default function MapEditor() {
       price: 20,
       position: { x: suggestion.x, y: suggestion.y },
       status: 'Free',
+      ...dimensions
     };
     setActiveFloor({...activeFloor, objects: [...activeFloor.objects, newObject]});
     setSuggestions((prev) => prev.filter(s => s !== suggestion));
@@ -403,10 +455,15 @@ export default function MapEditor() {
                       onDragEnd={handleObjectDragEnd}
                       onClick={() => handleObjectClick(obj)}
                       className={cn(
-                        "absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group",
+                        "absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center",
                          draggingObject?.id === obj.id && "opacity-50"
                       )}
-                      style={{ left: `${obj.position.x}%`, top: `${obj.position.y}%` }}
+                      style={{ 
+                          left: `${obj.position.x}%`, 
+                          top: `${obj.position.y}%`,
+                          width: `${obj.width}%`,
+                          height: `${obj.height}%`,
+                      }}
                       aria-label={`Edit ${obj.name}`}
                     >
                       <Icon className="w-6 h-6 text-foreground transition-transform group-hover:scale-125" />
@@ -472,7 +529,7 @@ export default function MapEditor() {
         <div className="flex flex-col gap-6">
           <ObjectPalette paletteItems={paletteItems} onAddCustomItem={handleAddCustomItem} />
           <PlacementAssistant 
-            floorPlanFile={floorPlanFile}
+            floorPlanUrl={activeFloor?.floorPlanUrl || null}
             onSuggestions={setSuggestions} 
             disabled={!activeFloor?.floorPlanUrl}
           />

@@ -49,10 +49,11 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
         width: `${object.width}%`,
         height: `${object.height}%`,
         ringColor: color,
+        color: color,
       }}
       aria-label={`Select ${object.name}`}
     >
-      <Icon className="w-6 h-6 text-foreground" style={{ color: object.color }} />
+      <Icon className="w-6 h-6" />
     </button>
   );
 };

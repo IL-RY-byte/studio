@@ -83,15 +83,16 @@ export default function EditObjectDialog({
         color: object.color,
       });
     }
-  }, [object, form, isOpen]); // re-sync form when dialog opens
+  }, [object, form, isOpen]);
 
   useEffect(() => {
-      if (isOpen && object && onLiveUpdate && form.formState.isDirty) {
-          onLiveUpdate({ ...object, ...watchedValues });
-      }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues, object, onLiveUpdate, isOpen]);
-
+    if (isOpen && object && onLiveUpdate && form.formState.isDirty) {
+      const subscription = form.watch((value) => {
+        onLiveUpdate({ ...object, ...value } as BookableObject);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [isOpen, object, onLiveUpdate, form]);
 
   if (!object) return null;
 
@@ -205,7 +206,7 @@ export default function EditObjectDialog({
                   <FormItem>
                     <FormLabel>Status Color</FormLabel>
                     <FormControl>
-                      <Input type="color" {...field} />
+                      <Input type="color" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -241,7 +242,7 @@ export default function EditObjectDialog({
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete this object from the map.
-                        </AlertDialogDescription>
+                        </d:AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>

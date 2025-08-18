@@ -9,7 +9,7 @@ import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, LogOut, User as UserIcon, BookMarked, Save } from 'lucide-react';
+import { Loader2, LogOut, User as UserIcon, BookMarked, Save, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
@@ -17,6 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { mockBookings } from "@/lib/mock-data";
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import QRCode from 'qrcode';
+import type { Booking } from '@/lib/types';
+import Image from 'next/image';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,12 +30,13 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // A real app would fetch the user's name from a database
-        // For now, we'll just use a default or previously saved name
       } else {
         router.push('/login');
       }
@@ -53,10 +58,21 @@ export default function ProfilePage() {
   
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call to save user profile data
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSaving(false);
     toast({ title: 'Profile Updated', description: 'Your details have been saved.' });
+  }
+
+  const handleBookingClick = async (booking: Booking) => {
+    if (booking.status !== 'Confirmed') return;
+    setSelectedBooking(booking);
+    try {
+        const url = await QRCode.toDataURL(JSON.stringify({ bookingId: booking.id, customer: userName }));
+        setQrCodeUrl(url);
+    } catch (err) {
+        console.error(err)
+        toast({variant: 'destructive', title: 'Could not generate QR code.'})
+    }
   }
 
   if (isLoading || !user) {
@@ -68,81 +84,121 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1 flex flex-col items-center p-4 md:p-6 bg-muted/20">
-        <div className="w-full max-w-4xl space-y-8">
-          <Card>
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <Avatar className="h-24 w-24">
-                  <AvatarFallback>
-                      <UserIcon className="h-12 w-12" />
-                  </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-headline">My Profile</CardTitle>
-                    <CardDescription>View your details and manage your bookings.</CardDescription>
-                  </div>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div className="space-y-2">
-                        <Label>Name</Label>
-                        <Input value={userName} onChange={(e) => setUserName(e.target.value)} />
+    <>
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex flex-col items-center p-4 md:p-6 bg-muted/20">
+          <div className="w-full max-w-4xl space-y-8">
+            <Card>
+              <CardHeader className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <Avatar className="h-24 w-24">
+                    <AvatarFallback>
+                        <UserIcon className="h-12 w-12" />
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-4">
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl font-headline">My Profile</CardTitle>
+                      <CardDescription>View your details and manage your bookings.</CardDescription>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Phone Number</Label>
-                        <Input value={user.phoneNumber || ''} disabled />
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <div className="space-y-2">
+                          <Label>Name</Label>
+                          <Input value={userName} onChange={(e) => setUserName(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                          <Label>Phone Number</Label>
+                          <Input value={user.phoneNumber || ''} disabled />
+                      </div>
                     </div>
-                  </div>
-              </div>
-            </CardHeader>
-             <CardContent className="flex justify-end gap-2">
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-                   Save Profile
-                </Button>
-                <Button onClick={handleLogout} variant="outline">
-                  <LogOut className="mr-2" />
-                  Logout
-                </Button>
-            </CardContent>
-          </Card>
+                </div>
+              </CardHeader>
+               <CardContent className="flex justify-end gap-2">
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
+                     Save Profile
+                  </Button>
+                  <Button onClick={handleLogout} variant="outline">
+                    <LogOut className="mr-2" />
+                    Logout
+                  </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <BookMarked className="h-6 w-6 text-primary" />
-                <CardTitle>My Bookings</CardTitle>
-              </div>
-              <CardDescription>An overview of all your past and upcoming reservations.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Object</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockBookings.filter(b => b.customerName !== 'Peter Jones').map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.objectName}</TableCell>
-                      <TableCell>{booking.locationName}</TableCell>
-                      <TableCell>{booking.bookingDate}</TableCell>
-                      <TableCell>
-                        <Badge variant={booking.status === 'Confirmed' ? 'default' : 'destructive'}>{booking.status}</Badge>
-                      </TableCell>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <BookMarked className="h-6 w-6 text-primary" />
+                  <CardTitle>My Bookings</CardTitle>
+                </div>
+                <CardDescription>An overview of all your past and upcoming reservations.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Object</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+                  </TableHeader>
+                  <TableBody>
+                    {mockBookings.filter(b => b.customerName !== 'Peter Jones').map((booking) => (
+                      <TableRow 
+                        key={booking.id} 
+                        onClick={() => handleBookingClick(booking)}
+                        className={booking.status === 'Confirmed' ? 'cursor-pointer' : ''}
+                      >
+                        <TableCell className="font-medium">{booking.objectName}</TableCell>
+                        <TableCell>{booking.locationName}</TableCell>
+                        <TableCell>{booking.bookingDate}</TableCell>
+                        <TableCell>
+                          <Badge variant={booking.status === 'Confirmed' ? 'default' : 'destructive'}>{booking.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {booking.status === 'Confirmed' && (
+                            <Button variant="ghost" size="sm">
+                              <QrCode className="mr-2" />
+                              View QR
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+
+      <Dialog open={!!selectedBooking} onOpenChange={(isOpen) => !isOpen && setSelectedBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Booking Confirmation</DialogTitle>
+            <DialogDescription>
+              Present this QR code upon arrival to confirm your booking.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="py-4 text-center space-y-4">
+              {qrCodeUrl ? (
+                <div className='flex justify-center'>
+                    <Image src={qrCodeUrl} alt="Booking QR Code" width={256} height={256} className="rounded-lg" />
+                </div>
+              ) : <Loader2 className="mx-auto h-8 w-8 animate-spin" />}
+              <div>
+                <p className="font-bold text-lg">{selectedBooking.objectName}</p>
+                <p className="text-muted-foreground">{selectedBooking.locationName}</p>
+                <p className="text-sm">{selectedBooking.bookingDate}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

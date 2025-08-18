@@ -4,6 +4,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -103,7 +104,7 @@ export default function MapEditor() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
   const [newFloorName, setNewFloorName] = useState('');
-  const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
+  const [draggingObject, setDraggingObject] = useState<string | null>(null);
   const [resizingState, setResizingState] = useState<ResizingState | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapContentRef = useRef<HTMLDivElement>(null);
@@ -340,7 +341,7 @@ export default function MapEditor() {
   const handleObjectDragStart = (e: React.DragEvent<HTMLButtonElement>, obj: BookableObject) => {
     e.dataTransfer.setData('objectId', obj.id);
     e.dataTransfer.effectAllowed = 'move';
-    setDraggingObject(obj);
+    setDraggingObject(obj.id);
     setSelectedObject(obj);
   };
   
@@ -652,7 +653,7 @@ export default function MapEditor() {
                         onClick={(e) => handleObjectClick(e, obj)}
                         className={cn(
                             "absolute -translate-x-1/2 -translate-y-1/2 bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center rounded-md",
-                            draggingObject?.id === obj.id && "opacity-50",
+                            draggingObject === obj.id && "opacity-50",
                             isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
                         )}
                         style={{ 

@@ -10,10 +10,10 @@ interface ObjectMarkerProps {
   onClick: (object: BookableObject) => void;
 }
 
-const statusColors: Record<BookableObject['status'], string> = {
-  Free: 'ring-green-500/70 hover:ring-green-500',
-  Reserved: 'ring-yellow-500/70 hover:ring-yellow-500',
-  Occupied: 'ring-red-500/70 cursor-not-allowed',
+const statusClasses: Record<BookableObject['status'], string> = {
+  Free: 'ring-[hsl(var(--status-free))] hover:ring-2',
+  Reserved: 'ring-[hsl(var(--status-reserved))] hover:ring-2',
+  Occupied: 'ring-[hsl(var(--status-occupied))] cursor-not-allowed',
 };
 
 const ObjectIcons: Record<BookableObject['type'], React.ElementType> = {
@@ -35,7 +35,7 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
       className={cn(
         'absolute -translate-x-1/2 -translate-y-1/2 p-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary',
         'flex items-center justify-center bg-card/80 backdrop-blur-sm shadow-md ring-4',
-        statusColors[object.status],
+        statusClasses[object.status],
         isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
       )}
       style={{ 
@@ -43,8 +43,7 @@ const ObjectMarker: FC<ObjectMarkerProps> = ({ object, onClick }) => {
         top: `${object.position.y}%`,
         width: `${object.width}%`,
         height: `${object.height}%`,
-        '--tw-ring-color': `hsl(var(--status-${object.status.toLowerCase()}))`
-      } as React.CSSProperties}
+      }}
       aria-label={`Select ${object.name}`}
     >
       <Icon className="w-6 h-6 text-foreground" />

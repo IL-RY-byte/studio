@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import type { BookableObject } from '@/lib/types';
+import type { BookableObject, ObjectStatus } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface EditObjectDialogProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   width: z.coerce.number().min(1, { message: 'Width must be at least 1.' }),
   height: z.coerce.number().min(1, { message: 'Height must be at least 1.' }),
+  status: z.enum(['Free', 'Reserved', 'Occupied']),
 });
 
 export default function EditObjectDialog({
@@ -57,6 +59,7 @@ export default function EditObjectDialog({
       price: 0,
       width: 5,
       height: 5,
+      status: 'Free',
     },
   });
 
@@ -68,6 +71,7 @@ export default function EditObjectDialog({
         price: object.price,
         width: object.width || 5,
         height: object.height || 5,
+        status: object.status,
       });
     }
   }, [object, form]);
@@ -135,19 +139,43 @@ export default function EditObjectDialog({
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price (per hour)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="25" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (per hour)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="25" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Free">Free</SelectItem>
+                          <SelectItem value="Reserved">Reserved</SelectItem>
+                          <SelectItem value="Occupied">Occupied</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="description"

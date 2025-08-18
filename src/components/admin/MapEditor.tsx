@@ -9,6 +9,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -190,36 +191,35 @@ export default function MapEditor() {
   }, [scale, translation]);
 
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && activeFloor && activeLocation) {
-        setIsUploading(true);
-        toast({ title: 'Processing...', description: 'Your floor plan is being processed.' });
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const dataUrl = reader.result as string;
+      setIsUploading(true);
+      toast({ title: 'Processing...', description: 'Your floor plan is being processed.' });
 
-            const updatedFloor = { ...activeFloor, floorPlanUrl: dataUrl, objects: [] };
-            const updatedFloors = activeLocation.floors.map(f => f.id === updatedFloor.id ? updatedFloor : f);
-            const updatedLocation = {
-                ...activeLocation,
-                floors: updatedFloors
-            };
-            
-            updateActiveLocationAndSave(updatedLocation);
-            setActiveFloor(updatedFloor);
-            setSuggestions([]);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
 
-            toast({ title: 'Upload Successful!', description: 'Your new floor plan is now active.' });
-            setIsUploading(false);
-        };
-        reader.onerror = () => {
-            console.error("Error reading file:", reader.error);
-            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not read the file.' });
-            setIsUploading(false);
-        }
-        reader.readAsDataURL(file);
+        const updatedFloor: Floor = { ...activeFloor, floorPlanUrl: dataUrl };
+        const updatedFloors = activeLocation.floors.map(f =>
+          f.id === activeFloor.id ? updatedFloor : f
+        );
+        const updatedLocation: Location = { ...activeLocation, floors: updatedFloors };
+
+        setActiveFloor(updatedFloor);
+        updateActiveLocationAndSave(updatedLocation);
+        setSuggestions([]); // Clear suggestions for the new floor plan
+
+        toast({ title: 'Upload Successful!', description: 'Your new floor plan is now active.' });
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        console.error("Error reading file:", reader.error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not read the file.' });
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -746,7 +746,7 @@ export default function MapEditor() {
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
-              <Button variant="destructive" onClick={handleClear} disabled={!activeFloor || (activeFloor.objects.length === 0 && suggestions.length === 0)}>
+              <Button variant="destructive" onClick={handleClear} disabled={!activeFloor?.floorPlanUrl}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
               </Button>

@@ -1,11 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -22,20 +23,35 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [orgName, setOrgName] = useState('PlanWise');
-  const [orgDescription, setOrgDescription] = useState('Interactive booking for any space.');
+  const [orgName, setOrgName] = useState('');
+  const [orgDescription, setOrgDescription] = useState('');
+
+  const fetchOrganizationData = useCallback(async (uid: string) => {
+    const docRef = doc(db, 'organizations', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      setOrgName(data.name || '');
+      setOrgDescription(data.description || '');
+    } else {
+      // Set default or empty state if no org data exists
+      setOrgName('My Organization');
+      setOrgDescription('Interactive booking for any space.');
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        fetchOrganizationData(currentUser.uid);
       } else {
         router.push('/login');
       }
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, fetchOrganizationData]);
 
   const handleLogout = async () => {
     try {
@@ -49,23 +65,33 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    if (!user) {
+        toast({variant: 'destructive', title: 'Not authenticated'});
+        return;
+    }
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast({ title: 'Profile Updated', description: 'Your organization details have been saved.' });
+    try {
+      const orgData = {
+        name: orgName,
+        description: orgDescription,
+        adminId: user.uid,
+      };
+      await setDoc(doc(db, 'organizations', user.uid), orgData, { merge: true });
+      toast({ title: 'Profile Updated', description: 'Your organization details have been saved.' });
+    } catch (error) {
+      console.error("Error saving organization data:", error);
+      toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save your data. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return null; // The redirect is handled in the effect
   }
 
   return (

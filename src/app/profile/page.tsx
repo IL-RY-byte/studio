@@ -1,11 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -26,24 +27,35 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [userName, setUserName] = useState('Customer');
+  const [userName, setUserName] = useState('');
   const router = useRouter();
   const { toast } = useToast();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   
+  const fetchUserData = useCallback(async (uid: string) => {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists() && docSnap.data().name) {
+      setUserName(docSnap.data().name);
+    } else {
+      setUserName('Customer'); // Default name
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        fetchUserData(currentUser.uid);
       } else {
         router.push('/login');
       }
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, fetchUserData]);
 
   const handleLogout = async () => {
     try {
@@ -57,10 +69,17 @@ export default function ProfilePage() {
   };
   
   const handleSave = async () => {
+    if (!user) return;
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast({ title: 'Profile Updated', description: 'Your details have been saved.' });
+    try {
+        await setDoc(doc(db, 'users', user.uid), { name: userName }, { merge: true });
+        toast({ title: 'Profile Updated', description: 'Your details have been saved.' });
+    } catch (error) {
+        console.error("Error saving user data:", error);
+        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save your data.' });
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   const handleBookingClick = async (booking: Booking) => {

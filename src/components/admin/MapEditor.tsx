@@ -3,14 +3,15 @@
 
 
 
+
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@/lib/types';
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2, MousePointerClick } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2, MousePointerClick, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -105,12 +106,19 @@ export default function MapEditor() {
   const [draggingObject, setDraggingObject] = useState<BookableObject | null>(null);
   const [resizingState, setResizingState] = useState<ResizingState | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapContentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [paletteItems, setPaletteItems] = useState<PaletteItem[]>(defaultPaletteItems);
   const [activeLocation, setActiveLocation] = useState<Location | null>(null);
   const searchParams = useSearchParams();
   const locationId = searchParams.get('locationId');
   const [isUploading, setIsUploading] = useState(false);
+
+  // Zoom and Pan state
+  const [scale, setScale] = useState(1);
+  const [translation, setTranslation] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [startPanPosition, setStartPanPosition] = useState({ x: 0, y: 0 });
 
 
   useEffect(() => {
@@ -166,6 +174,18 @@ export default function MapEditor() {
     }
   }, [activeFloor]);
 
+  const getMapCoordinates = useCallback((clientX: number, clientY: number) => {
+    if (!mapContainerRef.current) return { x: 0, y: 0 };
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const x = (clientX - rect.left - translation.x) / scale;
+    const y = (clientY - rect.top - translation.y) / scale;
+    // Convert to percentage of map dimensions (assuming map is same as container for now)
+    return {
+      x: (x / rect.width) * 100,
+      y: (y / rect.height) * 100,
+    };
+  }, [scale, translation]);
+
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,9 +226,8 @@ export default function MapEditor() {
 
     const type = e.dataTransfer.getData('objectType') as ObjectType;
     const existingObjectId = e.dataTransfer.getData('objectId');
-    const rect = mapContainerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    const { x, y } = getMapCoordinates(e.clientX, e.clientY);
     
     let tempObject: BookableObject;
     let newObjects: BookableObject[];
@@ -345,8 +364,10 @@ export default function MapEditor() {
     setSelectedObject(obj);
   };
 
-  const handleMapClick = () => {
-    setSelectedObject(null); // Deselect object when clicking on the map
+  const handleMapClick = (e: React.MouseEvent) => {
+      if (e.target === mapContainerRef.current || e.target === mapContentRef.current) {
+        setSelectedObject(null); // Deselect object when clicking on the map
+      }
   };
 
   const handleOpenEditDialog = (obj: BookableObject) => {
@@ -416,81 +437,150 @@ export default function MapEditor() {
         e.stopPropagation();
         e.preventDefault();
         if (!mapContainerRef.current) return;
+
+        const initialMousePos = getMapCoordinates(e.clientX, e.clientY);
         setResizingState({
             handle,
             initialObject: obj,
-            initialMousePos: { x: e.clientX, y: e.clientY },
+            initialMousePos,
         });
     };
 
+    const handleWheelZoom = (e: React.WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+        const newScale = Math.max(0.1, Math.min(scale * zoomFactor, 5));
+        
+        const rect = mapContainerRef.current!.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const newTx = mouseX - (mouseX - translation.x) * zoomFactor;
+        const newTy = mouseY - (mouseY - translation.y) * zoomFactor;
+
+        setScale(newScale);
+        setTranslation({ x: newTx, y: newTy });
+      }
+    };
+    
+    const handleZoomControls = (factor: 'in' | 'out' | 'reset') => {
+        if(factor === 'reset') {
+            setScale(1);
+            setTranslation({ x: 0, y: 0 });
+            return;
+        }
+        const zoomFactor = factor === 'in' ? 1.2 : 1 / 1.2;
+        const newScale = Math.max(0.1, Math.min(scale * zoomFactor, 5));
+        setScale(newScale);
+    }
+  
+    // Pan logic
     useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!resizingState || !mapContainerRef.current || !activeFloor) return;
-            
-            const { initialObject, initialMousePos, handle } = resizingState;
-            const mapRect = mapContainerRef.current.getBoundingClientRect();
-
-            const dx = ((e.clientX - initialMousePos.x) / mapRect.width) * 100;
-            const dy = ((e.clientY - initialMousePos.y) / mapRect.height) * 100;
-            
-            let newWidth = initialObject.width;
-            let newHeight = initialObject.height;
-            let newX = initialObject.position.x;
-            let newY = initialObject.position.y;
-            
-            if (handle.includes('right')) {
-                newWidth = Math.max(1, initialObject.width + dx);
-                newX = initialObject.position.x + dx / 2;
-            } else if (handle.includes('left')) {
-                newWidth = Math.max(1, initialObject.width - dx);
-                newX = initialObject.position.x + dx / 2;
-            }
-
-            if (handle.includes('bottom')) {
-                newHeight = Math.max(1, initialObject.height + dy);
-                newY = initialObject.position.y + dy / 2;
-            } else if (handle.includes('top')) {
-                newHeight = Math.max(1, initialObject.height - dy);
-                newY = initialObject.position.y + dy / 2;
-            }
-            
-            const updatedObject = {
-                ...initialObject,
-                width: newWidth,
-                height: newHeight,
-                position: { x: newX, y: newY },
-            };
-
-            // Collision check
-            let collision = false;
-            for (const obj of activeFloor.objects) {
-                if (obj.id !== updatedObject.id && checkCollision(updatedObject, obj)) {
-                    collision = true;
-                    break;
-                }
-            }
-
-            if (!collision) {
-                const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
-                setActiveFloor(prev => prev ? { ...prev, objects: newObjects } : null);
-                setSelectedObject(updatedObject);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space' && !isPanning) {
+                e.preventDefault();
+                mapContainerRef.current?.classList.add('cursor-grab');
             }
         };
-
-        const handleMouseUp = () => {
-            setResizingState(null);
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.code === 'Space') {
+                setIsPanning(false);
+                mapContainerRef.current?.classList.remove('cursor-grab', 'cursor-grabbing');
+            }
         };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [isPanning]);
 
-        if (resizingState) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
+
+    const handleMouseDownForPan = (e: React.MouseEvent) => {
+        if (e.button !== 0) return; // Only left-click
+        if (e.nativeEvent.code === 'Space' || e.buttons === 4) { // Spacebar or middle mouse
+            setIsPanning(true);
+            setStartPanPosition({ x: e.clientX - translation.x, y: e.clientY - translation.y });
+            mapContainerRef.current?.classList.add('cursor-grabbing');
+        }
+    };
+
+    const handleMouseMoveForPanAndResize = useCallback((e: MouseEvent) => {
+        if (isPanning) {
+            const newTx = e.clientX - startPanPosition.x;
+            const newTy = e.clientY - startPanPosition.y;
+            setTranslation({ x: newTx, y: newTy });
+        }
+        
+        if (!resizingState || !mapContainerRef.current || !activeFloor) return;
+            
+        const { initialObject, initialMousePos, handle } = resizingState;
+        
+        const currentMousePos = getMapCoordinates(e.clientX, e.clientY);
+        const dx = (currentMousePos.x - initialMousePos.x);
+        const dy = (currentMousePos.y - initialMousePos.y);
+        
+        let newWidth = initialObject.width;
+        let newHeight = initialObject.height;
+        let newX = initialObject.position.x;
+        let newY = initialObject.position.y;
+
+        if (handle.includes('right')) {
+            newWidth = Math.max(1, initialObject.width + dx);
+            newX = initialObject.position.x + dx / 2;
+        } else if (handle.includes('left')) {
+            newWidth = Math.max(1, initialObject.width - dx);
+            newX = initialObject.position.x + dx / 2;
         }
 
+        if (handle.includes('bottom')) {
+            newHeight = Math.max(1, initialObject.height + dy);
+            newY = initialObject.position.y + dy / 2;
+        } else if (handle.includes('top')) {
+            newHeight = Math.max(1, initialObject.height - dy);
+            newY = initialObject.position.y + dy / 2;
+        }
+        
+        const updatedObject = {
+            ...initialObject,
+            width: newWidth,
+            height: newHeight,
+            position: { x: newX, y: newY },
+        };
+
+        // Collision check
+        let collision = false;
+        for (const obj of activeFloor.objects) {
+            if (obj.id !== updatedObject.id && checkCollision(updatedObject, obj)) {
+                collision = true;
+                break;
+            }
+        }
+
+        if (!collision) {
+            const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
+            setActiveFloor(prev => prev ? { ...prev, objects: newObjects } : null);
+            setSelectedObject(updatedObject);
+        }
+    }, [isPanning, startPanPosition, resizingState, activeFloor, getMapCoordinates]);
+
+    const handleMouseUp = useCallback(() => {
+      setIsPanning(false);
+      setResizingState(null);
+      mapContainerRef.current?.classList.remove('cursor-grab', 'cursor-grabbing');
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('mousemove', handleMouseMoveForPanAndResize);
+        window.addEventListener('mouseup', handleMouseUp);
         return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mousemove', handleMouseMoveForPanAndResize);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [resizingState, activeFloor]);
+    }, [handleMouseMoveForPanAndResize, handleMouseUp]);
+
 
   return (
     <>
@@ -539,75 +629,95 @@ export default function MapEditor() {
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={handleMapClick}
-            className="relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors border-primary/20"
+            onWheel={handleWheelZoom}
+            onMouseDown={handleMouseDownForPan}
+            className="relative w-full aspect-[4/3] bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center transition-colors border-primary/20 overflow-hidden"
           >
-            {activeFloor?.floorPlanUrl ? (
-              <>
-                <Image src={activeFloor.floorPlanUrl} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
-                {activeFloor.objects.map((obj) => {
-                  const Icon = getObjectIcon(obj.type, paletteItems);
-                  const isSelected = selectedObject?.id === obj.id;
-                  return (
-                    <div
-                      key={obj.id}
-                      onClick={(e) => handleObjectClick(e, obj)}
-                      className={cn(
-                        "absolute -translate-x-1/2 -translate-y-1/2 bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center rounded-md",
-                         draggingObject?.id === obj.id && "opacity-50",
-                         isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                      )}
-                       style={{ 
-                          left: `${obj.position.x}%`, 
-                          top: `${obj.position.y}%`,
-                          width: `${obj.width || 5}%`,
-                          height: `${obj.height || 5}%`,
-                      }}
-                    >
-                        <button
-                          draggable
-                          onDragStart={(e) => handleObjectDragStart(e, obj)}
-                          onDragEnd={handleObjectDragEnd}
-                          onDoubleClick={() => handleOpenEditDialog(obj)}
-                          className="w-full h-full flex items-center justify-center"
-                          aria-label={`Edit ${obj.name}`}
+            <div 
+              ref={mapContentRef}
+              className="absolute top-0 left-0 w-full h-full" 
+              style={{ 
+                  transform: `translate(${translation.x}px, ${translation.y}px) scale(${scale})`,
+                  transformOrigin: 'top left' 
+              }}>
+                {activeFloor?.floorPlanUrl ? (
+                <>
+                    <Image src={activeFloor.floorPlanUrl} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
+                    {activeFloor.objects.map((obj) => {
+                    const Icon = getObjectIcon(obj.type, paletteItems);
+                    const isSelected = selectedObject?.id === obj.id;
+                    return (
+                        <div
+                        key={obj.id}
+                        onClick={(e) => handleObjectClick(e, obj)}
+                        className={cn(
+                            "absolute -translate-x-1/2 -translate-y-1/2 bg-card/80 backdrop-blur-sm shadow-md cursor-grab active:cursor-grabbing group flex items-center justify-center rounded-md",
+                            draggingObject?.id === obj.id && "opacity-50",
+                            isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        )}
+                        style={{ 
+                            left: `${obj.position.x}%`, 
+                            top: `${obj.position.y}%`,
+                            width: `${obj.width || 5}%`,
+                            height: `${obj.height || 5}%`,
+                        }}
                         >
-                            <Icon className="w-2/3 h-2/3 text-foreground transition-transform group-hover:scale-125" />
-                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                {obj.name}
-                            </div>
-                        </button>
+                            <button
+                            draggable
+                            onDragStart={(e) => handleObjectDragStart(e, obj)}
+                            onDragEnd={handleObjectDragEnd}
+                            onDoubleClick={() => handleOpenEditDialog(obj)}
+                            className="w-full h-full flex items-center justify-center"
+                            aria-label={`Edit ${obj.name}`}
+                            >
+                                <Icon className="w-2/3 h-2/3 text-foreground transition-transform group-hover:scale-125" />
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                    {obj.name}
+                                </div>
+                            </button>
 
-                         {isSelected && !resizingState && (
-                            <>
-                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-left')} className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
-                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-right')} className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
-                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-left')} className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
-                                <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-right')} className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
-                                <Button size="icon" variant="secondary" className="absolute -top-3 -right-10 h-7 w-7" onClick={() => handleOpenEditDialog(obj)}><Edit /></Button>
-                            </>
-                         )}
+                            {isSelected && !resizingState && (
+                                <>
+                                    <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-left')} className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
+                                    <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-right')} className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
+                                    <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-left')} className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
+                                    <div onMouseDown={(e) => handleResizeStart(e, obj, 'bottom-right')} className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
+                                    <Button size="icon" variant="secondary" className="absolute -top-3 -right-10 h-7 w-7" onClick={() => handleOpenEditDialog(obj)}><Edit /></Button>
+                                </>
+                            )}
+                        </div>
+                    );
+                    })}
+                    {suggestions.map((s, i) => (
+                    <button
+                        key={i}
+                        className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/30 backdrop-blur-sm shadow-md ring-2 ring-primary animate-pulse flex items-center justify-center"
+                        style={{ left: `${s.x}%`, top: `${s.y}%` }}
+                        onClick={() => handleAcceptSuggestion(s)}
+                        title={`Accept suggestion (Confidence: ${Math.round(s.confidence * 100)}%)`}
+                    >
+                        <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
+                    </button>
+                    ))}
+                </>
+                ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-muted-foreground">
+                    <div>
+                        <UploadCloud className="mx-auto h-12 w-12" />
+                        <p className="mt-2">Upload a floor plan to begin</p>
+                        <p className="text-xs">PNG, JPG, or SVG up to 5MB</p>
                     </div>
-                  );
-                })}
-                {suggestions.map((s, i) => (
-                  <button
-                      key={i}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/30 backdrop-blur-sm shadow-md ring-2 ring-primary animate-pulse flex items-center justify-center"
-                      style={{ left: `${s.x}%`, top: `${s.y}%` }}
-                      onClick={() => handleAcceptSuggestion(s)}
-                      title={`Accept suggestion (Confidence: ${Math.round(s.confidence * 100)}%)`}
-                  >
-                      <div className="w-2 h-2 rounded-full bg-primary-foreground"></div>
-                  </button>
-                ))}
-              </>
-            ) : (
-              <div className="text-center text-muted-foreground">
-                <UploadCloud className="mx-auto h-12 w-12" />
-                <p className="mt-2">Upload a floor plan to begin</p>
-                <p className="text-xs">PNG, JPG, or SVG up to 5MB</p>
-              </div>
-            )}
+                </div>
+                )}
+            </div>
+
+            <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => handleZoomControls('out')}><ZoomOut /></Button>
+                <Button variant="outline" size="icon" onClick={() => handleZoomControls('reset')}><Maximize /></Button>
+                <Button variant="outline" size="icon" onClick={() => handleZoomControls('in')}><ZoomIn /></Button>
+                <span className="p-2 bg-background/80 rounded-md text-xs font-mono">{Math.round(scale * 100)}%</span>
+            </div>
+
              {draggingObject && (
                 <div 
                     onDrop={handleTrashDrop}

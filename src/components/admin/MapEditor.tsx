@@ -10,6 +10,7 @@
 
 
 
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -17,7 +18,7 @@ import type { BookableObject, ObjectType, Location, PaletteItem, Floor } from '@
 import ObjectPalette from './ObjectPalette';
 import PlacementAssistant from './PlacementAssistant';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2, MousePointerClick, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { UploadCloud, Trash2, Save, Edit, PlusCircle, Loader2, MousePointerClick, ZoomIn, ZoomOut, Maximize, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import EditMultipleObjectsDialog from './EditMultipleObjectsDialog';
 
 
 const allLocations: Record<string, Location> = {
@@ -103,8 +105,9 @@ export default function MapEditor() {
   const [activeFloor, setActiveFloor] = useState<Floor | null>(null);
   const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [selectedObject, setSelectedObject] = useState<BookableObject | null>(null);
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isMultiEditDialogOpen, setIsMultiEditDialogOpen] = useState(false);
   const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
   const [newFloorName, setNewFloorName] = useState('');
   const [draggingObject, setDraggingObject] = useState<string | null>(null);
@@ -124,6 +127,7 @@ export default function MapEditor() {
   const [isPanning, setIsPanning] = useState(false);
   const [startPanPosition, setStartPanPosition] = useState({ x: 0, y: 0 });
 
+  const singleSelectedObject = activeFloor?.objects.find(obj => obj.id === selectedObjectIds[0]) || null;
 
   useEffect(() => {
     const loadMapData = (loc: Location) => {
@@ -349,26 +353,35 @@ export default function MapEditor() {
     e.dataTransfer.setData('objectId', obj.id);
     e.dataTransfer.effectAllowed = 'move';
     setDraggingObject(obj.id);
-    setSelectedObject(obj);
   };
   
   const handleObjectDragEnd = () => {
     setDraggingObject(null);
   };
 
-  const handleObjectClick = (e: React.MouseEvent, obj: BookableObject) => {
-    e.stopPropagation(); // Prevent map click from firing
-    setSelectedObject(obj);
+ const handleObjectClick = (e: React.MouseEvent, obj: BookableObject) => {
+    e.stopPropagation();
+    const isShiftPressed = e.shiftKey;
+
+    if (isShiftPressed) {
+      setSelectedObjectIds(prev =>
+        prev.includes(obj.id)
+          ? prev.filter(id => id !== obj.id)
+          : [...prev, obj.id]
+      );
+    } else {
+      setSelectedObjectIds([obj.id]);
+    }
   };
 
   const handleMapClick = (e: React.MouseEvent) => {
       if (e.target === mapContainerRef.current || e.target === mapContentRef.current) {
-        setSelectedObject(null); // Deselect object when clicking on the map
+        setSelectedObjectIds([]);
       }
   };
 
   const handleOpenEditDialog = (obj: BookableObject) => {
-    setSelectedObject(obj);
+    setSelectedObjectIds([obj.id]);
     setIsEditDialogOpen(true);
   };
 
@@ -385,7 +398,15 @@ export default function MapEditor() {
     toast({ title: 'Object Updated', description: `Successfully updated ${updatedObject.name}.` });
   };
 
-   const handleDeleteObject = (objectId: string) => {
+  const handleDeleteManyObjects = () => {
+    if (!activeFloor || selectedObjectIds.length === 0) return;
+    const newObjects = activeFloor.objects.filter(obj => !selectedObjectIds.includes(obj.id));
+    setActiveFloor({ ...activeFloor, objects: newObjects });
+    toast({ title: 'Objects Deleted', description: `${selectedObjectIds.length} objects have been removed.` });
+    setSelectedObjectIds([]);
+  };
+
+  const handleDeleteObject = (objectId: string) => {
     if (activeFloor) {
         const newObjects = activeFloor.objects.filter(obj => obj.id !== objectId);
         setActiveFloor({...activeFloor, objects: newObjects});
@@ -393,6 +414,25 @@ export default function MapEditor() {
     }
   };
 
+  const handleBulkUpdate = (updatedValues: Partial<BookableObject>) => {
+    if (!activeFloor) return;
+    const newObjects = activeFloor.objects.map(obj => {
+        if (selectedObjectIds.includes(obj.id)) {
+            const newObj = { ...obj };
+            if (updatedValues.name) newObj.name = `${updatedValues.name} ${obj.name.split(' ').pop()}`;
+            if (updatedValues.description) newObj.description = updatedValues.description;
+            if (updatedValues.price !== undefined) newObj.price = updatedValues.price;
+            if (updatedValues.status) newObj.status = updatedValues.status;
+            if (updatedValues.color) newObj.color = updatedValues.color;
+            return newObj;
+        }
+        return obj;
+    });
+    setActiveFloor({ ...activeFloor, objects: newObjects });
+    toast({ title: 'Bulk Update Successful', description: `${selectedObjectIds.length} objects were updated.` });
+    setIsMultiEditDialogOpen(false);
+    setSelectedObjectIds([]);
+  };
   
   const handleAddCustomItem = (item: Omit<PaletteItem, 'icon'>) => {
     const newItem = { ...item, icon: Box, type: item.name.toLowerCase().replace(/\s/g, '-') };
@@ -572,7 +612,7 @@ export default function MapEditor() {
         if (!collision) {
             const newObjects = activeFloor.objects.map(obj => obj.id === updatedObject.id ? updatedObject : obj);
             setActiveFloor(prev => prev ? { ...prev, objects: newObjects } : null);
-            setSelectedObject(updatedObject);
+            setSelectedObjectIds([updatedObject.id]);
         }
     }, [isPanning, startPanPosition, resizingState, activeFloor, getMapCoordinates]);
 
@@ -655,7 +695,7 @@ export default function MapEditor() {
                     <Image src={activeFloor.floorPlanUrl} layout="fill" objectFit="contain" alt="Floor plan" className="rounded-md p-2 pointer-events-none" />
                     {activeFloor.objects.map((obj) => {
                     const Icon = getObjectIcon(obj.type, paletteItems);
-                    const isSelected = selectedObject?.id === obj.id;
+                    const isSelected = selectedObjectIds.includes(obj.id);
                     return (
                         <div
                         key={obj.id}
@@ -686,7 +726,7 @@ export default function MapEditor() {
                                 </div>
                             </button>
 
-                            {isSelected && !resizingState && (
+                            {isSelected && selectedObjectIds.length === 1 && !resizingState && (
                                 <>
                                     <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-left')} className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full cursor-nwse-resize border-2 border-background" />
                                     <div onMouseDown={(e) => handleResizeStart(e, obj, 'top-right')} className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full cursor-nesw-resize border-2 border-background" />
@@ -720,6 +760,42 @@ export default function MapEditor() {
                 </div>
                 )}
             </div>
+            
+            {selectedObjectIds.length > 0 && (
+                <div className="absolute bottom-4 right-4 z-10 bg-background p-3 rounded-lg shadow-2xl border flex items-center gap-2">
+                    <p className="text-sm font-medium pr-2 border-r">{selectedObjectIds.length} item(s) selected</p>
+                    {selectedObjectIds.length > 1 && (
+                        <Button size="sm" onClick={() => setIsMultiEditDialogOpen(true)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Selected
+                        </Button>
+                    )}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Selected
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete {selectedObjectIds.length} items?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the selected objects from the map.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteManyObjects}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedObjectIds([])}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Clear Selection
+                    </Button>
+                </div>
+            )}
 
             <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => handleZoomControls('out')}><ZoomOut /></Button>
@@ -742,11 +818,11 @@ export default function MapEditor() {
                   </label>
               </Button>
               <input id="floor-plan-upload" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-              <Button onClick={handleSaveMap} disabled={!activeFloor?.floorPlanUrl}>
+              <Button onClick={handleSaveMap} disabled={!activeLocation || !activeFloor?.floorPlanUrl}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Map
               </Button>
-              <Button variant="destructive" onClick={handleClear} disabled={!activeFloor?.floorPlanUrl}>
+              <Button variant="destructive" onClick={handleClear} disabled={!activeLocation || !activeFloor?.floorPlanUrl}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
               </Button>
@@ -764,14 +840,26 @@ export default function MapEditor() {
       </div>
       
       <EditObjectDialog
-        isOpen={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        object={selectedObject}
+        isOpen={isEditDialogOpen && selectedObjectIds.length === 1}
+        onOpenChange={(open) => {
+            if (!open) {
+                setSelectedObjectIds([]);
+            }
+            setIsEditDialogOpen(open);
+        }}
+        object={singleSelectedObject}
         onSave={handleFinalUpdateObject}
         onDelete={handleDeleteObject}
         onLiveUpdate={handleUpdateObject}
       />
       
+      <EditMultipleObjectsDialog
+        isOpen={isMultiEditDialogOpen}
+        onOpenChange={setIsMultiEditDialogOpen}
+        onSave={handleBulkUpdate}
+        objectCount={selectedObjectIds.length}
+      />
+
       <AlertDialog open={isAddFloorOpen} onOpenChange={setIsAddFloorOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>

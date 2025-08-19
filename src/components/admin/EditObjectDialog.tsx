@@ -84,13 +84,13 @@ export default function EditObjectDialog({
   }, [object, form, isOpen]);
   
   useEffect(() => {
-    if (isOpen && object && onLiveUpdate) {
-        const subscription = form.watch((value) => {
-            const updatedObject = { ...object, ...value, width: Number(value.width) || 0, height: Number(value.height) || 0, price: Number(value.price) || 0 };
-            onLiveUpdate(updatedObject as BookableObject);
-        });
-        return () => subscription.unsubscribe();
-    }
+    if (!isOpen || !object || !onLiveUpdate) return;
+    
+    const subscription = form.watch((value) => {
+        const updatedObject = { ...object, ...value, width: Number(value.width) || 0, height: Number(value.height) || 0, price: Number(value.price) || 0 };
+        onLiveUpdate(updatedObject as BookableObject);
+    });
+    return () => subscription.unsubscribe();
   }, [isOpen, object, onLiveUpdate, form]);
 
   if (!object) return null;

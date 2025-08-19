@@ -75,6 +75,7 @@ const InteractiveMap: FC<InteractiveMapProps> = ({ location }) => {
       </div>
       <BookingSheet
         object={selectedObject}
+        locationId={location.id}
         isOpen={!!selectedObject}
         onOpenChange={handleSheetOpenChange}
       />

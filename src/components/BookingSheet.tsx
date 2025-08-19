@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 
 interface BookingSheetProps {
   object: BookableObject | null;
+  locationId: string;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
@@ -30,7 +31,7 @@ const statusVariant: Record<BookableObject['status'], 'default' | 'destructive' 
     Occupied: 'destructive'
 };
 
-const BookingSheet: FC<BookingSheetProps> = ({ object, isOpen, onOpenChange }) => {
+const BookingSheet: FC<BookingSheetProps> = ({ object, locationId, isOpen, onOpenChange }) => {
   const { toast } = useToast();
   const router = useRouter();
   const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -40,10 +41,17 @@ const BookingSheet: FC<BookingSheetProps> = ({ object, isOpen, onOpenChange }) =
   const handleBooking = () => {
     onOpenChange(false);
     toast({
-        title: "Proceeding to Payment",
-        description: `Booking ${object.name} for ${date?.toLocaleDateString()}.`,
+        title: "Confirm Your Booking",
+        description: `Reviewing booking for ${object.name}.`,
     });
-    router.push('/payment');
+    
+    const params = new URLSearchParams({
+        locationId: locationId,
+        objectId: object.id,
+        date: date?.toISOString() || new Date().toISOString(),
+    });
+    
+    router.push(`/confirmation?${params.toString()}`);
   }
 
   return (
@@ -76,7 +84,7 @@ const BookingSheet: FC<BookingSheetProps> = ({ object, isOpen, onOpenChange }) =
         </div>
         <SheetFooter>
           <Button type="button" size="lg" className="w-full" onClick={handleBooking}>
-            Book and Pay
+            Book Now
           </Button>
         </SheetFooter>
       </SheetContent>

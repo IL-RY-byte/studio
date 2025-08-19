@@ -15,22 +15,22 @@ export default function LandingPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                    Transform Your Space with Interactive Booking
+                    Launch Bookings on Your Map in 10 Minutes
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    PlanWise provides a seamless way for your customers to view and book spots at your venue, from beach clubs to co-working spaces.
+                    Upload your venue plan, place objects, and start accepting payments in one click.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg">
-                    <Link href="/map">
-                      See the Demo
+                    <Link href="/admin">
+                      Start Free
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <Link href="/admin">
-                      Get Started
+                    <Link href="/map">
+                      Watch Demo
                     </Link>
                   </Button>
                 </div>
@@ -53,39 +53,39 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">Key Features</div>
+                <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">Key Benefits</div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Everything You Need to Succeed</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Our platform is packed with features to help you manage your space efficiently and provide an amazing customer experience.
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:gap-16 mt-12">
+            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-3 md:gap-12 lg:gap-16 mt-12">
               <div className="grid gap-1 text-center">
                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <Star className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold">Customizable Maps</h3>
+                <h3 className="text-xl font-bold">Higher Revenue</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upload your own floor plan and drag-and-drop objects to create a custom, interactive map of your venue.
+                    Maximize your space utilization and offer premium bookings to increase your income.
                 </p>
               </div>
               <div className="grid gap-1 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <Shuffle className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold">AI Placement Assistant</h3>
+                <h3 className="text-xl font-bold">Real-Time Map</h3>
                 <p className="text-sm text-muted-foreground">
-                  Leverage our AI assistant to get smart suggestions for object placement, optimizing your space for maximum revenue.
+                    Give customers a live view of your venue's availability, reducing manual coordination.
                 </p>
               </div>
               <div className="grid gap-1 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <Smartphone className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold">Mobile-Friendly</h3>
+                <h3 className="text-xl font-bold">Online Payments & Notifications</h3>
                 <p className="text-sm text-muted-foreground">
-                  Customers can easily browse and book from any device, with a responsive design that looks great everywhere.
+                  Securely accept pre-payments and automatically send confirmations to your customers.
                 </p>
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function LandingPage() {
                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
                     <UploadCloud className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold text-center">1. Upload Your Floor Plan</h3>
+                <h3 className="text-xl font-bold text-center">1. Create Location</h3>
                 <p className="text-muted-foreground text-center">
                   Start by uploading an image of your venue's layout. It can be a simple sketch or a detailed architectural drawing.
                 </p>
@@ -116,7 +116,7 @@ export default function LandingPage() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
                     <MousePointerClick className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold text-center">2. Design Your Space</h3>
+                <h3 className="text-xl font-bold text-center">2. Place Objects</h3>
                 <p className="text-muted-foreground text-center">
                   Use the drag-and-drop editor to place tables, chairs, and other objects. Use the AI assistant for smart layout suggestions.
                 </p>
@@ -125,11 +125,19 @@ export default function LandingPage() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
                     <Save className="h-8 w-8" />
                  </div>
-                <h3 className="text-xl font-bold text-center">3. Save and Go Live</h3>
+                <h3 className="text-xl font-bold text-center">3. Launch Bookings</h3>
                 <p className="text-muted-foreground text-center">
                   Save your map, and it's instantly available for customers to view and make bookings. It's that simple!
                 </p>
               </div>
+            </div>
+             <div className="flex justify-center flex-col gap-2 min-[400px]:flex-row mt-8">
+                <Button asChild size="lg">
+                    <Link href="/admin">
+                        Start Free
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
             </div>
           </div>
         </section>

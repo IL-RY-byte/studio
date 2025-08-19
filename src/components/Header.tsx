@@ -6,8 +6,14 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, BotMessageSquare, Map, Compass, LogIn, User as UserIcon } from 'lucide-react';
+import { LayoutGrid, BotMessageSquare, LogIn, User as UserIcon, ChevronDown } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
 const Header = () => {
@@ -31,16 +37,29 @@ const Header = () => {
           <span className="font-bold text-lg">PlanWise</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4">
-           <Button asChild variant="ghost">
-            <Link href="/map">
-              <Map className="mr-2 h-4 w-4" />
-              Demo
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost">
+                Solutions
+                <ChevronDown className="relative top-[1px] ml-1 h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild><Link href="/solutions/resorts">Resorts & Beaches</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/solutions/restaurants">Restaurants & Halls</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/solutions/sports">Sports & Leisure</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/solutions/coworking">Coworking & Offices</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button asChild variant="ghost">
+            <Link href="/how-it-works">
+              How It Works
             </Link>
           </Button>
           <Button asChild variant="ghost">
-            <Link href="/locations">
-              <Compass className="mr-2 h-4 w-4" />
-              Locations
+            <Link href="/pricing">
+              Pricing
             </Link>
           </Button>
         </nav>

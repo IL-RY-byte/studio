@@ -3,86 +3,86 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 94%;
-    --foreground: 275 100% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 275 100% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 275 100% 10%;
-    --primary: 275 100% 25%;
+    --background: 270 20% 99%; /* Very light grey, almost white */
+    --foreground: 275 10% 10%;
+    --card: 270 20% 100%;
+    --card-foreground: 275 10% 10%;
+    --popover: 270 20% 100%;
+    --popover-foreground: 275 10% 10%;
+    --primary: 275 80% 25%; /* Deep indigo */
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 300 100% 25%;
+    --secondary: 270 15% 96.1%;
+    --secondary-foreground: 270 10% 9%;
+    --muted: 270 15% 90%;
+    --muted-foreground: 270 10% 45.1%;
+    --accent: 300 70% 40%; /* Purple */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 275 100% 25%;
-    --radius: 0.5rem;
+    --border: 270 15% 89.8%;
+    --input: 270 15% 92.8%;
+    --ring: 275 80% 35%;
+    --radius: 0.75rem;
 
     /* Custom status colors */
-    --status-free: 120 60% 40%; /* A clear, available green */
-    --status-reserved: 45 93% 47%; /* A noticeable yellow/orange */
+    --status-free: 140 60% 45%; /* A clear, available green */
+    --status-reserved: 45 93% 55%; /* A noticeable yellow/orange */
     --status-occupied: 0 84% 60%; /* A distinct red */
 
     --chart-1: hsl(var(--status-occupied));
     --chart-2: hsl(var(--status-free));
     --chart-3: 210 40% 96.1%;
     --chart-4: hsl(var(--status-reserved));
-    --chart-5: 300 100% 25%;
+    --chart-5: hsl(var(--accent));
 
-    --sidebar-background: 275 20% 96%;
-    --sidebar-foreground: 275 100% 10%;
-    --sidebar-primary: 275 100% 25%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 275 20% 90%;
-    --sidebar-accent-foreground: 275 100% 10%;
-    --sidebar-border: 275 20% 85%;
-    --sidebar-ring: 275 100% 25%;
+    --sidebar-background: 270 20% 97%;
+    --sidebar-foreground: 275 10% 10%;
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: 270 20% 92%;
+    --sidebar-accent-foreground: 275 10% 10%;
+    --sidebar-border: 270 20% 88%;
+    --sidebar-ring: hsl(var(--ring));
   }
 
   .dark {
     --background: 275 10% 10%;
     --foreground: 0 0% 94%;
-    --card: 275 10% 10%;
+    --card: 275 10% 12%;
     --card-foreground: 0 0% 94%;
-    --popover: 275 10% 10%;
+    --popover: 275 10% 12%;
     --popover-foreground: 0 0% 94%;
-    --primary: 275 100% 70%;
-    --primary-foreground: 275 100% 10%;
+    --primary: 275 70% 60%;
+    --primary-foreground: 275 10% 10%;
     --secondary: 275 10% 15%;
     --secondary-foreground: 0 0% 94%;
-    --muted: 275 10% 15%;
+    --muted: 275 10% 18%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 300 100% 70%;
-    --accent-foreground: 300 100% 10%;
-    --destructive: 0 62.8% 30.6%;
+    --accent: 300 70% 55%;
+    --accent-foreground: 300 10% 10%;
+    --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 275 10% 20%;
-    --input: 275 10% 20%;
-    --ring: 275 100% 70%;
+    --input: 275 10% 22%;
+    --ring: 275 70% 70%;
 
-    --status-free: 120 50% 50%;
+    --status-free: 140 50% 50%;
     --status-reserved: 45 93% 57%;
     --status-occupied: 0 72% 51%;
 
     --sidebar-background: 275 10% 12%;
     --sidebar-foreground: 0 0% 94%;
-    --sidebar-primary: 275 100% 70%;
-    --sidebar-primary-foreground: 275 100% 10%;
+    --sidebar-primary: hsl(var(--primary));
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
     --sidebar-accent: 275 10% 18%;
     --sidebar-accent-foreground: 0 0% 94%;
     --sidebar-border: 275 10% 20%;
-    --sidebar-ring: 275 100% 70%;
+    --sidebar-ring: hsl(var(--ring));
   }
 }
 

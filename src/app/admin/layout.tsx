@@ -13,7 +13,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { BotMessageSquare, LayoutGrid, Users, BarChart, Compass, User as UserIcon } from 'lucide-react';
+import { BotMessageSquare, LayoutGrid, Users, BarChart, Compass, User as UserIcon, Settings } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
@@ -25,6 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex min-h-screen">
         <Sidebar>
           <SidebarHeader>
+            <SidebarTrigger />
             <Link href="/" className="flex items-center gap-2">
               <BotMessageSquare className="w-6 h-6 text-primary" />
               <span className="text-lg font-semibold">PlanWise</span>
@@ -68,6 +69,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SidebarContent>
           <SidebarFooter>
              <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/admin/settings'}>
+                        <Link href="/admin/settings">
+                            <Settings />
+                            Settings
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === '/admin/profile'}>
                         <Link href="/admin/profile">

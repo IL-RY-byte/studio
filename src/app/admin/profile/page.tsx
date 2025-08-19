@@ -4,13 +4,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, LogOut, User as UserIcon, Save } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, LogOut, User as UserIcon, Save, Building, Info, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,8 +23,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [displayName, setDisplayName] = useState('');
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
 
   const fetchOrganizationData = useCallback(async (uid: string) => {
     const docRef = doc(db, 'organizations', uid);
@@ -33,8 +35,8 @@ export default function ProfilePage() {
       const data = docSnap.data();
       setOrgName(data.name || '');
       setOrgDescription(data.description || '');
+      setPhotoURL(data.logoUrl || '');
     } else {
-      // Set default or empty state if no org data exists
       setOrgName('My Organization');
       setOrgDescription('Interactive booking for any space.');
     }
@@ -44,6 +46,8 @@ export default function ProfilePage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setDisplayName(currentUser.displayName || '');
+        setPhotoURL(currentUser.photoURL || '');
         fetchOrganizationData(currentUser.uid);
       } else {
         router.push('/login');
@@ -71,9 +75,14 @@ export default function ProfilePage() {
     }
     setIsSaving(true);
     try {
+      // Update Firebase Auth profile
+      await updateProfile(user, { displayName, photoURL });
+      
+      // Update Firestore organization data
       const orgData = {
         name: orgName,
         description: orgDescription,
+        logoUrl: photoURL,
         adminId: user.uid,
       };
       await setDoc(doc(db, 'organizations', user.uid), orgData, { merge: true });
@@ -95,42 +104,99 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col p-4 md:p-6 items-center justify-center bg-muted/20">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-            <div className="flex items-start gap-6">
-                <Avatar className="h-24 w-24">
-                    <AvatarFallback>
-                        <UserIcon className="h-12 w-12" />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                    <CardTitle className="text-2xl font-headline">Administrator Profile</CardTitle>
-                    <CardDescription>View and manage your organization's details.</CardDescription>
-                     <p className="text-lg font-mono mt-2">{user.phoneNumber}</p>
-                </div>
-                 <Button onClick={handleLogout} variant="outline" size="sm">
-                    <LogOut className="mr-2" />
-                    Logout
-                  </Button>
-            </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="orgName">Organization Name</Label>
-              <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="orgDescription">Organization Description</Label>
-              <Textarea id="orgDescription" value={orgDescription} onChange={(e) => setOrgDescription(e.target.value)} placeholder="Tell us about your organization" />
-            </div>
-            
-          <Button onClick={handleSave} className="w-full" disabled={isSaving}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-            Save Changes
-          </Button>
-        </CardContent>
-      </Card>
+    <main className="flex-1 flex-col p-4 md:p-6 bg-muted/20">
+       <div className="flex items-center mb-6">
+        <h1 className="font-semibold text-2xl md:text-3xl font-headline">Profile & Settings</h1>
+        <div className="ml-auto flex items-center gap-2">
+            <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
+                Save All Changes
+            </Button>
+            <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="mr-2" />
+                Logout
+            </Button>
+        </div>
+      </div>
+      
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                    <div className='flex items-center gap-2'>
+                         <UserIcon className="h-5 w-5 text-primary" />
+                         <CardTitle>Administrator</CardTitle>
+                    </div>
+                    <CardDescription>Your personal account details.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="flex flex-col items-center gap-4">
+                        <Avatar className="h-24 w-24">
+                           <AvatarImage src={photoURL || undefined} alt={displayName} />
+                            <AvatarFallback>
+                                <UserIcon className="h-12 w-12" />
+                            </AvatarFallback>
+                        </Avatar>
+                        <Input
+                            id="photoURL"
+                            placeholder="Image URL for your avatar"
+                            value={photoURL}
+                            onChange={(e) => setPhotoURL(e.target.value)}
+                         />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="displayName">Full Name</Label>
+                      <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input id="email" value={user.email || ''} disabled />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+        <div className="lg:col-span-2 space-y-6">
+            <Card>
+                <CardHeader>
+                    <div className='flex items-center gap-2'>
+                         <Building className="h-5 w-5 text-primary" />
+                         <CardTitle>Organization Details</CardTitle>
+                    </div>
+                    <CardDescription>Public information about your company.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="orgName">Organization Name</Label>
+                      <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="orgDescription">Organization Description</Label>
+                      <Textarea id="orgDescription" value={orgDescription} onChange={(e) => setOrgDescription(e.target.value)} placeholder="Tell us about your organization" />
+                    </div>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                     <div className='flex items-center gap-2'>
+                         <Info className="h-5 w-5 text-primary" />
+                         <CardTitle>Integrations</CardTitle>
+                    </div>
+                    <CardDescription>Connect with third-party services.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                      <Label htmlFor="stripeKey">Stripe API Key</Label>
+                      <Input id="stripeKey" type="password" placeholder="sk_test_••••••••••••••••••••••••" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="telegramToken">Telegram Bot Token</Label>
+                      <Input id="telegramToken" type="password" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+      </div>
     </main>
   );
 }

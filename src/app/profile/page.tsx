@@ -4,12 +4,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, LogOut, User as UserIcon, BookMarked, Save, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
@@ -27,7 +27,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [userName, setUserName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const router = useRouter();
   const { toast } = useToast();
 
@@ -37,10 +37,8 @@ export default function ProfilePage() {
   const fetchUserData = useCallback(async (uid: string) => {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
-    if (docSnap.exists() && docSnap.data().name) {
-      setUserName(docSnap.data().name);
-    } else {
-      setUserName('Customer'); // Default name
+    if (docSnap.exists() && docSnap.data().displayName) {
+      setDisplayName(docSnap.data().displayName);
     }
   }, []);
 
@@ -48,6 +46,7 @@ export default function ProfilePage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setDisplayName(currentUser.displayName || '');
         fetchUserData(currentUser.uid);
       } else {
         router.push('/login');
@@ -72,7 +71,8 @@ export default function ProfilePage() {
     if (!user) return;
     setIsSaving(true);
     try {
-        await setDoc(doc(db, 'users', user.uid), { name: userName }, { merge: true });
+        await updateProfile(user, { displayName });
+        await setDoc(doc(db, 'users', user.uid), { displayName }, { merge: true });
         toast({ title: 'Profile Updated', description: 'Your details have been saved.' });
     } catch (error) {
         console.error("Error saving user data:", error);
@@ -86,7 +86,7 @@ export default function ProfilePage() {
     if (booking.status !== 'Confirmed') return;
     setSelectedBooking(booking);
     try {
-        const url = await QRCode.toDataURL(JSON.stringify({ bookingId: booking.id, customer: userName }));
+        const url = await QRCode.toDataURL(JSON.stringify({ bookingId: booking.id, customer: displayName }));
         setQrCodeUrl(url);
     } catch (err) {
         console.error(err)
@@ -111,6 +111,7 @@ export default function ProfilePage() {
             <Card>
               <CardHeader className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <Avatar className="h-24 w-24">
+                    <AvatarImage src={user.photoURL || undefined} alt={displayName} />
                     <AvatarFallback>
                         <UserIcon className="h-12 w-12" />
                     </AvatarFallback>
@@ -123,11 +124,11 @@ export default function ProfilePage() {
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                       <div className="space-y-2">
                           <Label>Name</Label>
-                          <Input value={userName} onChange={(e) => setUserName(e.target.value)} />
+                          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                       </div>
                       <div className="space-y-2">
-                          <Label>Phone Number</Label>
-                          <Input value={user.phoneNumber || ''} disabled />
+                          <Label>Email Address</Label>
+                          <Input value={user.email || ''} disabled />
                       </div>
                     </div>
                 </div>
